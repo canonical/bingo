@@ -54,7 +54,7 @@ func (s *Server) requireCSRF(w http.ResponseWriter, r *http.Request) bool {
 		return true // anonymous requests don't carry CSRF tokens
 	}
 	if !auth.ValidateCSRF(r) {
-		writeError(w, http.StatusForbidden, "invalid_csrf", "CSRF token missing or invalid")
+		writeError(w, http.StatusForbidden, "csrf_invalid", "CSRF token missing or invalid")
 		return false
 	}
 	return true
