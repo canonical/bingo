@@ -44,7 +44,23 @@ type createResponse struct {
 	CreatedAt time.Time `json:"created_at"`
 }
 
+// requireCSRF validates the CSRF token when auth is enabled.
+// Returns true if the request may proceed; writes a 403 and returns false otherwise.
+func (s *Server) requireCSRF(w http.ResponseWriter, r *http.Request) bool {
+	if s.auth == nil {
+		return true // CSRF only matters when auth is enabled
+	}
+	if !auth.ValidateCSRF(r) {
+		writeError(w, http.StatusForbidden, "invalid_csrf", "CSRF token missing or invalid")
+		return false
+	}
+	return true
+}
+
 func (s *Server) handleCreatePaste(w http.ResponseWriter, r *http.Request) {
+	if !s.requireCSRF(w, r) {
+		return
+	}
 	// Limit body size before any read to prevent memory exhaustion.
 	// Use MaxPasteSizeBytes + overhead for JSON framing; the precise content
 	// size check below enforces the exact limit on the content field itself.
@@ -179,6 +195,9 @@ func (s *Server) getPasteOrError(w http.ResponseWriter, ctx context.Context, k s
 }
 
 func (s *Server) handleDeletePaste(w http.ResponseWriter, r *http.Request) {
+	if !s.requireCSRF(w, r) {
+		return
+	}
 	k := r.PathValue("key")
 
 	// Fetch paste to check ownership before deleting.
@@ -221,6 +240,23 @@ func (s *Server) handleListLanguages(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string][]string{"languages": paste.AllLanguages()})
 }
 
+// pasteListItem is a summary view of a paste used in list responses (no content field).
+type pasteListItem struct {
+	Key       string    `json:"key"`
+	URL       string    `json:"url"`
+	Language  string    `json:"language"`
+	Title     string    `json:"title,omitempty"`
+	SizeBytes int       `json:"size_bytes"`
+	ExpiresAt time.Time `json:"expires_at"`
+	CreatedAt time.Time `json:"created_at"`
+}
+
+// listMyPastesResponse is the envelope returned by GET /api/v1/pastes?mine=true.
+type listMyPastesResponse struct {
+	Pastes []pasteListItem `json:"pastes"`
+	Count  int             `json:"count"`
+}
+
 // handleListMyPastes returns the authenticated user's pastes.
 // Requires an active session; returns 401 when the user is not authenticated.
 func (s *Server) handleListMyPastes(w http.ResponseWriter, r *http.Request) {
@@ -234,17 +270,25 @@ func (s *Server) handleListMyPastes(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusUnauthorized, "unauthenticated", "Login required.")
 		return
 	}
-	pastes, err := s.repo.ListByOwner(r.Context(), sess.UserID, 100)
+	pastes, err := s.repo.ListByOwner(r.Context(), sess.UserID, 50)
 	if err != nil {
 		slog.Error("list pastes by owner", "err", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Internal server error.")
 		return
 	}
-	out := make([]pasteResponse, 0, len(pastes))
+	items := make([]pasteListItem, 0, len(pastes))
 	for _, p := range pastes {
-		out = append(out, s.toPasteResponse(p))
+		items = append(items, pasteListItem{
+			Key:       p.Key,
+			URL:       s.cfg.BaseURL + "/" + p.Key,
+			Language:  p.Language,
+			Title:     p.Title,
+			SizeBytes: p.SizeBytes,
+			ExpiresAt: p.ExpiresAt.UTC(),
+			CreatedAt: p.CreatedAt.UTC(),
+		})
 	}
-	writeJSON(w, http.StatusOK, map[string][]pasteResponse{"pastes": out})
+	writeJSON(w, http.StatusOK, listMyPastesResponse{Pastes: items, Count: len(items)})
 }
 
 func (s *Server) toPasteResponse(p *paste.Paste) pasteResponse {

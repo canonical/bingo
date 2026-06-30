@@ -558,6 +558,15 @@ func TestListMyPastes_authenticated(t *testing.T) {
 	if !ok || len(pastes) == 0 {
 		t.Errorf("expected non-empty pastes list, got %v", body["pastes"])
 	}
+	if count, ok := body["count"].(float64); !ok || int(count) != 1 {
+		t.Errorf("count = %v, want 1", body["count"])
+	}
+	// Verify the content field is not present in list items.
+	if item, ok := pastes[0].(map[string]any); ok {
+		if _, hasContent := item["content"]; hasContent {
+			t.Error("list item must not include the content field")
+		}
+	}
 }
 
 func TestCreatePaste_injectsOwnerIDFromSession(t *testing.T) {
