@@ -297,3 +297,59 @@ func TestGetLanguages(t *testing.T) {
 
 // Ensure sql import is used when db is non-nil in integration scenarios.
 var _ *sql.DB
+
+func TestGetPasteRaw_success(t *testing.T) {
+	expiry := time.Now().Add(24 * time.Hour).UTC()
+	repo := defaultRepo()
+	repo.getByKeyFn = func(_ context.Context, _ string) (*paste.Paste, error) {
+		return &paste.Paste{
+			Key:       "abcd",
+			Content:   "package main\n",
+			Language:  "go",
+			SizeBytes: 14,
+			ExpiresAt: expiry,
+			CreatedAt: time.Now().UTC(),
+		}, nil
+	}
+	ts := newTestServer(t, repo)
+
+	resp, err := http.Get(ts.URL + "/api/v1/pastes/abcd/raw")
+	if err != nil {
+		t.Fatalf("GET raw: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("status = %d, want 200", resp.StatusCode)
+	}
+	if ct := resp.Header.Get("Content-Type"); ct != "text/plain; charset=utf-8" {
+		t.Errorf("Content-Type = %q, want text/plain; charset=utf-8", ct)
+	}
+	if xct := resp.Header.Get("X-Content-Type-Options"); xct != "nosniff" {
+		t.Errorf("X-Content-Type-Options = %q, want nosniff", xct)
+	}
+}
+
+func TestDeletePaste_success(t *testing.T) {
+	var deletedKey string
+	repo := defaultRepo()
+	repo.deleteFn = func(_ context.Context, key string) error {
+		deletedKey = key
+		return nil
+	}
+	ts := newTestServer(t, repo)
+
+	req, _ := http.NewRequest(http.MethodDelete, ts.URL+"/api/v1/pastes/mykey", nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("DELETE: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		t.Errorf("status = %d, want 204", resp.StatusCode)
+	}
+	if deletedKey != "mykey" {
+		t.Errorf("Delete called with key %q, want mykey", deletedKey)
+	}
+}

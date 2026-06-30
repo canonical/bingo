@@ -44,8 +44,17 @@ type createResponse struct {
 }
 
 func (s *Server) handleCreatePaste(w http.ResponseWriter, r *http.Request) {
+	// Limit body size before any read to prevent memory exhaustion.
+	r.Body = http.MaxBytesReader(w, r.Body, s.cfg.MaxPasteSizeBytes+1)
+
 	var req createRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		var mbe *http.MaxBytesError
+		if errors.As(err, &mbe) {
+			writeError(w, http.StatusRequestEntityTooLarge, "content_too_large",
+				"Paste exceeds the configured size limit.")
+			return
+		}
 		writeError(w, http.StatusBadRequest, "invalid_request", "Request body is not valid JSON.")
 		return
 	}
