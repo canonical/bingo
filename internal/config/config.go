@@ -23,6 +23,8 @@ type Config struct {
 	OIDCClientSecret string
 	OIDCRedirectURL  string
 	SessionSecret    string
+
+	WebDir string // WEB_DIR: path to web/dist; empty = disable static file serving
 }
 
 // AuthEnabled reports whether OIDC authentication is fully configured.
@@ -54,6 +56,7 @@ func Load() (*Config, error) {
 		OIDCClientSecret:  os.Getenv("OIDC_CLIENT_SECRET"),
 		OIDCRedirectURL:   os.Getenv("OIDC_REDIRECT_URL"),
 		SessionSecret:     os.Getenv("SESSION_SECRET"),
+		WebDir:            os.Getenv("WEB_DIR"),
 	}
 
 	// Validate OIDC config: either all-or-nothing, and SESSION_SECRET required.

@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"encoding/json"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	"bingo/internal/auth"
 	"bingo/internal/config"
@@ -39,6 +41,9 @@ func New(cfg *config.Config, db *sql.DB, repo paste.Repository, authProvider *au
 		userRepo: userRepo,
 	}
 	s.registerRoutes()
+	if cfg.WebDir != "" {
+		s.serveStaticFiles(cfg.WebDir)
+	}
 	s.handler = s.corsMiddleware(s.auth.Middleware(s.mux))
 	return s
 }
@@ -105,4 +110,20 @@ type errEnvelope struct {
 // writeError writes a JSON error envelope with the given HTTP status.
 func writeError(w http.ResponseWriter, status int, code, message string) {
 	writeJSON(w, status, errEnvelope{Error: errDetail{Code: code, Message: message}})
+}
+
+// serveStaticFiles registers a catch-all handler that serves web/dist as a SPA.
+// Requests matching /api/* or /auth/* are not intercepted (already registered).
+// Any path that doesn't resolve to an existing file falls back to index.html.
+func (s *Server) serveStaticFiles(webDir string) {
+	fs := http.FileServer(http.Dir(webDir))
+	s.mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		path := filepath.Join(webDir, filepath.Clean("/"+r.URL.Path))
+		_, err := os.Stat(path)
+		if os.IsNotExist(err) {
+			http.ServeFile(w, r, filepath.Join(webDir, "index.html"))
+			return
+		}
+		fs.ServeHTTP(w, r)
+	}))
 }
