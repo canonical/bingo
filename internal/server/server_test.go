@@ -11,6 +11,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
 	"bingo/internal/auth"
 	"bingo/internal/config"
 	"bingo/internal/paste"
@@ -602,4 +605,22 @@ func TestCreatePaste_injectsOwnerIDFromSession(t *testing.T) {
 	if capturedOwnerID == nil || *capturedOwnerID != 99 {
 		t.Errorf("OwnerID = %v, want pointer to 99", capturedOwnerID)
 	}
+}
+
+func TestSecurityHeaders(t *testing.T) {
+	repo := defaultRepo()
+	repo.getByKeyFn = func(_ context.Context, _ string) (*paste.Paste, error) {
+		return nil, paste.ErrNotFound
+	}
+	ts := newTestServer(t, repo)
+
+	resp, err := http.Get(ts.URL + "/api/v1/healthz")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, "DENY", resp.Header.Get("X-Frame-Options"))
+	assert.Equal(t, "nosniff", resp.Header.Get("X-Content-Type-Options"))
+	csp := resp.Header.Get("Content-Security-Policy")
+	assert.Contains(t, csp, "default-src 'self'")
+	assert.NotContains(t, csp, "unsafe-eval")
 }

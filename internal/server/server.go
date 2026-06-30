@@ -44,7 +44,7 @@ func New(cfg *config.Config, db *sql.DB, repo paste.Repository, authProvider *au
 	if cfg.WebDir != "" {
 		s.serveStaticFiles(cfg.WebDir)
 	}
-	s.handler = s.corsMiddleware(s.auth.Middleware(s.mux))
+	s.handler = s.securityHeadersMiddleware(s.corsMiddleware(s.auth.Middleware(s.mux)))
 	return s
 }
 
@@ -68,6 +68,21 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 			w.WriteHeader(http.StatusNoContent)
 			return
 		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// securityHeadersMiddleware sets mandatory security headers on every response.
+func (s *Server) securityHeadersMiddleware(next http.Handler) http.Handler {
+	const csp = "default-src 'self'; " +
+		"style-src 'self' 'unsafe-inline'; " +
+		"img-src 'self' data:; " +
+		"object-src 'none'; " +
+		"frame-ancestors 'none'"
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("X-Frame-Options", "DENY")
+		w.Header().Set("X-Content-Type-Options", "nosniff")
+		w.Header().Set("Content-Security-Policy", csp)
 		next.ServeHTTP(w, r)
 	})
 }
