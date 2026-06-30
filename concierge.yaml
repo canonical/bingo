@@ -1,0 +1,20 @@
+# concierge.yaml — environment provisioning for charm integration tests.
+# Bootstraps MicroK8s and Juju 3.6 for k8s charm deployment.
+# Reference: https://github.com/canonical/charm-ci/examples/concierge-microk8s.yaml
+juju:
+  channel: 3.6/stable
+  model-defaults:
+    test-mode: "true"
+    automatically-retry-hooks: "false"
+
+providers:
+  microk8s:
+    enable: true
+    bootstrap: true
+    addons:
+      - hostpath-storage
+      - dns
+
+host:
+  packages:
+    - skopeo
