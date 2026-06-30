@@ -60,3 +60,39 @@ export class ApiRequestError extends Error {
     this.name = 'ApiRequestError'
   }
 }
+
+export function isCreatePasteResponse(obj: unknown): obj is CreatePasteResponse {
+  if (typeof obj !== 'object' || obj === null) return false
+  const o = obj as Record<string, unknown>
+  return (
+    typeof o.key === 'string' &&
+    typeof o.url === 'string' &&
+    typeof o.raw_url === 'string' &&
+    typeof o.language === 'string' &&
+    typeof o.size_bytes === 'number' &&
+    typeof o.expires_at === 'string' &&
+    typeof o.created_at === 'string' &&
+    !('content' in o)
+  )
+}
+
+export function isPasteResponse(obj: unknown): obj is PasteResponse {
+  if (typeof obj !== 'object' || obj === null) return false
+  const o = obj as Record<string, unknown>
+  return (
+    typeof o.key === 'string' &&
+    typeof o.url === 'string' &&
+    typeof o.raw_url === 'string' &&
+    typeof o.content === 'string' &&
+    typeof o.language === 'string' &&
+    typeof o.size_bytes === 'number' &&
+    typeof o.expires_at === 'string' &&
+    typeof o.created_at === 'string'
+  )
+}
+
+export function isMyPastesResponse(obj: unknown): obj is MyPastesResponse {
+  if (typeof obj !== 'object' || obj === null) return false
+  const o = obj as Record<string, unknown>
+  return Array.isArray(o.pastes) && typeof o.count === 'number'
+}

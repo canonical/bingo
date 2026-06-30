@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createPaste, getPaste, deletePaste, getLanguages, getMyPastes, getCSRFToken } from './client'
-import { ApiRequestError } from './types'
+import { ApiRequestError, isCreatePasteResponse, isPasteResponse, isMyPastesResponse } from './types'
 
 const mockFetch = vi.fn()
 beforeEach(() => { 
@@ -109,5 +109,24 @@ describe('getCSRFToken', () => {
       configurable: true,
     })
     expect(getCSRFToken()).toBe('abc123')
+  })
+})
+
+describe('type guards', () => {
+  it('isCreatePasteResponse: true for valid object without content', () => {
+    const obj = { key: 'a', url: 'u', raw_url: 'r', language: 'text', size_bytes: 1, expires_at: 'e', created_at: 'c' }
+    expect(isCreatePasteResponse(obj)).toBe(true)
+  })
+  it('isCreatePasteResponse: false when content present', () => {
+    expect(isCreatePasteResponse({ key: 'a', url: 'u', raw_url: 'r', language: 'text', content: 'x', size_bytes: 1, expires_at: 'e', created_at: 'c' })).toBe(false)
+  })
+  it('isPasteResponse: true for valid object with content', () => {
+    expect(isPasteResponse({ key: 'a', url: 'u', raw_url: 'r', content: 'hi', language: 'text', size_bytes: 2, expires_at: 'e', created_at: 'c' })).toBe(true)
+  })
+  it('isMyPastesResponse: true for { pastes: [], count: 0 }', () => {
+    expect(isMyPastesResponse({ pastes: [], count: 0 })).toBe(true)
+  })
+  it('isMyPastesResponse: false for non-object', () => {
+    expect(isMyPastesResponse(null)).toBe(false)
   })
 })
