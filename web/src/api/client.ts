@@ -5,6 +5,9 @@ import {
   MyPastesResponse,
   ApiError,
   ApiRequestError,
+  isCreatePasteResponse,
+  isPasteResponse,
+  isMyPastesResponse,
 } from './types'
 
 // ─── CSRF ────────────────────────────────────────────────────────────────────
@@ -22,8 +25,8 @@ async function request<T>(
   options: RequestInit = {}
 ): Promise<T> {
   const res = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...options.headers },
     ...options,
+    headers: { 'Content-Type': 'application/json', ...options.headers },
   })
   
   if (res.ok) {
@@ -56,15 +59,19 @@ export async function getLanguages(): Promise<string[]> {
 }
 
 export async function getPaste(key: string): Promise<PasteResponse> {
-  return request<PasteResponse>(`/api/v1/pastes/${encodeURIComponent(key)}`, { method: 'GET' })
+  const data = await request<unknown>(`/api/v1/pastes/${encodeURIComponent(key)}`, { method: 'GET' })
+  if (!isPasteResponse(data)) throw new ApiRequestError(200, 'invalid_response', 'Unexpected response shape from GET /pastes/:key')
+  return data
 }
 
 export async function createPaste(params: CreatePasteParams): Promise<CreatePasteResponse> {
-  return request<CreatePasteResponse>('/api/v1/pastes', {
+  const data = await request<unknown>('/api/v1/pastes', {
     method: 'POST',
     headers: csrfHeaders(),
     body: JSON.stringify(params),
   })
+  if (!isCreatePasteResponse(data)) throw new ApiRequestError(201, 'invalid_response', 'Unexpected response shape from POST /pastes')
+  return data
 }
 
 export async function deletePaste(key: string): Promise<void> {
@@ -75,5 +82,7 @@ export async function deletePaste(key: string): Promise<void> {
 }
 
 export async function getMyPastes(): Promise<MyPastesResponse> {
-  return request<MyPastesResponse>('/api/v1/pastes?mine=true', { method: 'GET' })
+  const data = await request<unknown>('/api/v1/pastes?mine=true', { method: 'GET' })
+  if (!isMyPastesResponse(data)) throw new ApiRequestError(200, 'invalid_response', 'Unexpected response shape from GET /pastes?mine=true')
+  return data
 }

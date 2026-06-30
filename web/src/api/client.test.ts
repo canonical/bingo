@@ -55,6 +55,11 @@ describe('getPaste', () => {
       expect((e as ApiRequestError).code).toBe('paste_not_found')
     }
   })
+
+  it('throws ApiRequestError when response shape is invalid', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({ bad: true }))
+    await expect(getPaste('abc12')).rejects.toMatchObject({ code: 'invalid_response' })
+  })
 })
 
 describe('createPaste', () => {
@@ -77,6 +82,27 @@ describe('createPaste', () => {
     expect(options.method).toBe('POST')
     expect(JSON.parse(options.body as string)).toMatchObject({ language: 'python' })
   })
+
+  it('includes Content-Type and X-CSRF-Token headers on POST', async () => {
+    Object.defineProperty(document, 'cookie', { value: 'csrf_token=tok123', configurable: true })
+    const body = {
+      key: 'xyz99', url: 'u', raw_url: 'r', language: 'python',
+      size_bytes: 1, expires_at: 'e', created_at: 'c',
+    }
+    mockFetch.mockResolvedValue(jsonResponse(body, 201))
+    await createPaste({ content: 'x', language: 'python', expires_in: '1d' })
+    const options = mockFetch.mock.calls[0][1] as RequestInit
+    const headers = options.headers as Record<string, string>
+    expect(headers['Content-Type']).toBe('application/json')
+    expect(headers['X-CSRF-Token']).toBe('tok123')
+  })
+
+  it('throws ApiRequestError when response shape is invalid', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({ unexpected: true }, 201))
+    await expect(
+      createPaste({ content: 'x', language: 'python', expires_in: '1d' })
+    ).rejects.toMatchObject({ code: 'invalid_response' })
+  })
 })
 
 describe('deletePaste', () => {
@@ -94,6 +120,11 @@ describe('getMyPastes', () => {
     const result = await getMyPastes()
     expect(result.count).toBe(0)
     expect(result.pastes).toEqual([])
+  })
+
+  it('throws ApiRequestError when response shape is invalid', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({ wrong: true }))
+    await expect(getMyPastes()).rejects.toMatchObject({ code: 'invalid_response' })
   })
 })
 
