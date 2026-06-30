@@ -104,6 +104,42 @@ func (r *PostgresRepository) DeleteExpired(ctx context.Context) (int64, error) {
 	return n, nil
 }
 
+// ListByOwner returns up to limit active pastes owned by ownerID, newest first.
+func (r *PostgresRepository) ListByOwner(ctx context.Context, ownerID int64, limit int) ([]*Paste, error) {
+	const q = `
+		SELECT id, key, content, language, title, size_bytes, expires_at, created_at, owner_id
+		FROM pastes
+		WHERE owner_id = $1 AND expires_at > now()
+		ORDER BY created_at DESC
+		LIMIT $2`
+	rows, err := r.db.QueryContext(ctx, q, ownerID, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list by owner: %w", err)
+	}
+	defer rows.Close()
+
+	var pastes []*Paste
+	for rows.Next() {
+		var p Paste
+		var title sql.NullString
+		err := rows.Scan(
+			&p.ID, &p.Key, &p.Content, &p.Language, &title,
+			&p.SizeBytes, &p.ExpiresAt, &p.CreatedAt, &p.OwnerID,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("scan paste: %w", err)
+		}
+		if title.Valid {
+			p.Title = title.String
+		}
+		pastes = append(pastes, &p)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, fmt.Errorf("rows error: %w", err)
+	}
+	return pastes, nil
+}
+
 // scanPaste reads a single paste row from a *sql.Row.
 func scanPaste(row *sql.Row) (*Paste, error) {
 	var p Paste

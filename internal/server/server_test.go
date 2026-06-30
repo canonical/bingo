@@ -22,6 +22,7 @@ type stubRepo struct {
 	getByKeyFn      func(ctx context.Context, key string) (*paste.Paste, error)
 	deleteFn        func(ctx context.Context, key string) error
 	deleteExpiredFn func(ctx context.Context) (int64, error)
+	listByOwnerFn   func(ctx context.Context, ownerID int64, limit int) ([]*paste.Paste, error)
 }
 
 func (s *stubRepo) Create(ctx context.Context, p paste.CreateParams) (*paste.Paste, error) {
@@ -35,6 +36,9 @@ func (s *stubRepo) Delete(ctx context.Context, key string) error {
 }
 func (s *stubRepo) DeleteExpired(ctx context.Context) (int64, error) {
 	return s.deleteExpiredFn(ctx)
+}
+func (s *stubRepo) ListByOwner(ctx context.Context, ownerID int64, limit int) ([]*paste.Paste, error) {
+	return s.listByOwnerFn(ctx, ownerID, limit)
 }
 
 func newTestServer(t *testing.T, repo paste.Repository) *httptest.Server {
@@ -59,6 +63,7 @@ func defaultRepo() *stubRepo {
 		},
 		deleteFn:        func(_ context.Context, _ string) error { return nil },
 		deleteExpiredFn: func(_ context.Context) (int64, error) { return 0, nil },
+		listByOwnerFn:   func(_ context.Context, _ int64, _ int) ([]*paste.Paste, error) { return nil, nil },
 	}
 }
 

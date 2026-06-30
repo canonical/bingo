@@ -232,3 +232,61 @@ func TestPostgresRepository_DeleteExpired(t *testing.T) {
 		t.Errorf("live paste deleted unexpectedly: %v", err)
 	}
 }
+
+func TestPostgresRepository_ListByOwner(t *testing.T) {
+	repo := requireDB(t)
+	t.Cleanup(func() { cleanPastes(t) })
+
+	// Insert a fake owner into users.
+	var ownerID int64
+	err := testDB.QueryRowContext(context.Background(),
+		`INSERT INTO users (sub, email) VALUES ($1, $2) RETURNING id`,
+		"sub|listtest", "list@example.com",
+	).Scan(&ownerID)
+	if err != nil {
+		t.Fatalf("insert user: %v", err)
+	}
+	t.Cleanup(func() {
+		testDB.ExecContext(context.Background(), "DELETE FROM users WHERE id = $1", ownerID) //nolint:errcheck
+	})
+
+	// Create two pastes for this owner, one for no owner.
+	params := paste.CreateParams{
+		Content:   "owned paste",
+		Language:  "go",
+		ExpiresIn: paste.ExpiresIn1d,
+		OwnerID:   &ownerID,
+	}
+	p1, err := repo.Create(context.Background(), params)
+	if err != nil {
+		t.Fatalf("Create owned: %v", err)
+	}
+	params.Content = "owned paste 2"
+	p2, err := repo.Create(context.Background(), params)
+	if err != nil {
+		t.Fatalf("Create owned 2: %v", err)
+	}
+	// Anonymous paste — must NOT appear in results.
+	_, err = repo.Create(context.Background(), paste.CreateParams{
+		Content:   "anon paste",
+		Language:  "go",
+		ExpiresIn: paste.ExpiresIn1d,
+	})
+	if err != nil {
+		t.Fatalf("Create anon: %v", err)
+	}
+
+	pastes, err := repo.ListByOwner(context.Background(), ownerID, 50)
+	if err != nil {
+		t.Fatalf("ListByOwner(): %v", err)
+	}
+	if len(pastes) != 2 {
+		t.Fatalf("ListByOwner() returned %d pastes, want 2", len(pastes))
+	}
+	keys := map[string]bool{p1.Key: true, p2.Key: true}
+	for _, p := range pastes {
+		if !keys[p.Key] {
+			t.Errorf("unexpected key %q in results", p.Key)
+		}
+	}
+}

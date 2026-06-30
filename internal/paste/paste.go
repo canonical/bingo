@@ -46,6 +46,9 @@ type Repository interface {
 	// DeleteExpired removes all pastes whose expires_at is in the past.
 	// Returns the number of rows deleted.
 	DeleteExpired(ctx context.Context) (int64, error)
+	// ListByOwner returns up to limit active (non-expired) pastes for ownerID,
+	// ordered by created_at descending.
+	ListByOwner(ctx context.Context, ownerID int64, limit int) ([]*Paste, error)
 }
 
 // ExpiresIn is the set of allowed paste expiration durations.

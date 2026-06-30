@@ -34,6 +34,10 @@ func (m *mockRepository) DeleteExpired(ctx context.Context) (int64, error) {
 	return 1, nil
 }
 
+func (m *mockRepository) ListByOwner(ctx context.Context, ownerID int64, limit int) ([]*paste.Paste, error) {
+	return nil, nil
+}
+
 func TestStartSweep_callsDeleteExpired(t *testing.T) {
 	mock := &mockRepository{}
 	ctx, cancel := context.WithCancel(context.Background())
