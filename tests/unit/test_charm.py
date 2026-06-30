@@ -23,10 +23,10 @@ def ctx() -> testing.Context:
 def test_charm_initialises(ctx: testing.Context) -> None:
     """BingoCharm must initialise without errors on start."""
     state_in = testing.State()
-    # start event — charm is not yet blocked because pebble hasn't connected.
+    # start event — paas_charm does not set unit status on start;
+    # status stays UnknownStatus until pebble-ready or config-changed.
     state_out = ctx.run(ctx.on.start(), state_in)
-    # paas_charm.go.Charm starts in Waiting until the container connects.
-    assert state_out.unit_status.name in ("waiting", "maintenance", "active")
+    assert state_out.unit_status.name in ("waiting", "maintenance", "active", "unknown")
 
 
 def test_pebble_ready_without_postgresql(ctx: testing.Context) -> None:

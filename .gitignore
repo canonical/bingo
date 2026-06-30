@@ -27,3 +27,6 @@ web/.env.local
 *.swp
 *~
 /bingo
+lib/**/__pycache__/
+.coverage
+src/__pycache__/

@@ -94,7 +94,7 @@ config:
       default: info
 
 actions:
-  rotate-session-secret:
+  rotate-secret-key:
     description: |
       Rotate the SESSION_SECRET. Existing authenticated sessions are invalidated
       and users must log in again. Use after a suspected credential compromise.
