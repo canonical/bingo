@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"bingo/internal/auth"
 	"bingo/internal/config"
 	"bingo/internal/paste"
 	"bingo/internal/server"
@@ -374,12 +375,24 @@ func TestGetPasteRaw_success(t *testing.T) {
 
 func TestDeletePaste_success(t *testing.T) {
 	var deletedKey string
+	ownerID := int64(42)
 	repo := defaultRepo()
+	repo.getByKeyFn = func(_ context.Context, _ string) (*paste.Paste, error) {
+		return &paste.Paste{
+			Key:       "mykey",
+			OwnerID:   &ownerID,
+			ExpiresAt: time.Now().Add(time.Hour),
+		}, nil
+	}
 	repo.deleteFn = func(_ context.Context, key string) error {
 		deletedKey = key
 		return nil
 	}
-	ts := newTestServer(t, repo)
+	cfg := &config.Config{BaseURL: "https://example.com", MaxPasteSizeBytes: 5 * 1024 * 1024}
+	srv := server.New(cfg, nil, repo, nil, nil)
+	wrapped := injectSession(srv, &auth.Session{UserID: 42, Sub: "sub|42", Email: "a@b.com"})
+	ts := httptest.NewServer(wrapped)
+	t.Cleanup(ts.Close)
 
 	req, _ := http.NewRequest(http.MethodDelete, ts.URL+"/api/v1/pastes/mykey", nil)
 	resp, err := http.DefaultClient.Do(req)
@@ -393,5 +406,191 @@ func TestDeletePaste_success(t *testing.T) {
 	}
 	if deletedKey != "mykey" {
 		t.Errorf("Delete called with key %q, want mykey", deletedKey)
+	}
+}
+
+// injectSession wraps handler with middleware that forces a specific session into context.
+func injectSession(next http.Handler, sess *auth.Session) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		ctx := context.WithValue(r.Context(), auth.TestSessionKey{}, sess)
+		next.ServeHTTP(w, r.WithContext(ctx))
+	})
+}
+
+func TestDeletePaste_anonymousPasteForbidden(t *testing.T) {
+	repo := defaultRepo()
+	repo.getByKeyFn = func(_ context.Context, _ string) (*paste.Paste, error) {
+		return &paste.Paste{
+			Key:       "anon",
+			OwnerID:   nil, // anonymous paste
+			ExpiresAt: time.Now().Add(time.Hour),
+		}, nil
+	}
+	ts := newTestServer(t, repo)
+
+	req, _ := http.NewRequest(http.MethodDelete, ts.URL+"/api/v1/pastes/anon", nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("DELETE: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Errorf("delete anonymous paste: status = %d, want 403", resp.StatusCode)
+	}
+}
+
+func TestDeletePaste_unauthenticatedOnOwnedPaste(t *testing.T) {
+	ownerID := int64(1)
+	repo := defaultRepo()
+	repo.getByKeyFn = func(_ context.Context, _ string) (*paste.Paste, error) {
+		return &paste.Paste{
+			Key:       "owned",
+			OwnerID:   &ownerID,
+			ExpiresAt: time.Now().Add(time.Hour),
+		}, nil
+	}
+	ts := newTestServer(t, repo) // no auth → no session in context
+
+	req, _ := http.NewRequest(http.MethodDelete, ts.URL+"/api/v1/pastes/owned", nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("DELETE: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("unauthenticated delete of owned paste: status = %d, want 401", resp.StatusCode)
+	}
+}
+
+func TestDeletePaste_wrongOwner(t *testing.T) {
+	ownerID := int64(1)
+	repo := defaultRepo()
+	repo.getByKeyFn = func(_ context.Context, _ string) (*paste.Paste, error) {
+		return &paste.Paste{
+			Key:       "owned",
+			OwnerID:   &ownerID,
+			ExpiresAt: time.Now().Add(time.Hour),
+		}, nil
+	}
+	cfg := &config.Config{BaseURL: "https://example.com", MaxPasteSizeBytes: 5 * 1024 * 1024}
+	srv := server.New(cfg, nil, repo, nil, nil)
+	wrapped := injectSession(srv, &auth.Session{UserID: 99, Sub: "sub|99", Email: "b@b.com"})
+	ts := httptest.NewServer(wrapped)
+	t.Cleanup(ts.Close)
+
+	req, _ := http.NewRequest(http.MethodDelete, ts.URL+"/api/v1/pastes/owned", nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("DELETE: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusForbidden {
+		t.Errorf("wrong owner delete: status = %d, want 403", resp.StatusCode)
+	}
+}
+
+func TestListMyPastes_authDisabled(t *testing.T) {
+	ts := newTestServer(t, defaultRepo())
+
+	resp, err := http.Get(ts.URL + "/api/v1/pastes?mine=true")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusUnauthorized {
+		t.Errorf("status = %d, want 401", resp.StatusCode)
+	}
+}
+
+func TestListMyPastes_badQueryParam(t *testing.T) {
+	ts := newTestServer(t, defaultRepo())
+
+	resp, err := http.Get(ts.URL + "/api/v1/pastes")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", resp.StatusCode)
+	}
+}
+
+func TestListMyPastes_authenticated(t *testing.T) {
+	repo := defaultRepo()
+	repo.listByOwnerFn = func(_ context.Context, ownerID int64, _ int) ([]*paste.Paste, error) {
+		return []*paste.Paste{
+			{
+				Key:       "abc",
+				Content:   "hello",
+				Language:  "go",
+				SizeBytes: 5,
+				ExpiresAt: time.Now().Add(time.Hour),
+				CreatedAt: time.Now(),
+				OwnerID:   &ownerID,
+			},
+		}, nil
+	}
+	cfg := &config.Config{BaseURL: "https://example.com", MaxPasteSizeBytes: 5 * 1024 * 1024}
+	srv := server.New(cfg, nil, repo, nil, nil)
+	wrapped := injectSession(srv, &auth.Session{UserID: 7, Sub: "sub|7", Email: "c@c.com"})
+	ts := httptest.NewServer(wrapped)
+	t.Cleanup(ts.Close)
+
+	resp, err := http.Get(ts.URL + "/api/v1/pastes?mine=true")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("status = %d, want 200", resp.StatusCode)
+	}
+	var body map[string]any
+	if err := json.NewDecoder(resp.Body).Decode(&body); err != nil {
+		t.Fatalf("decode: %v", err)
+	}
+	pastes, ok := body["pastes"].([]any)
+	if !ok || len(pastes) == 0 {
+		t.Errorf("expected non-empty pastes list, got %v", body["pastes"])
+	}
+}
+
+func TestCreatePaste_injectsOwnerIDFromSession(t *testing.T) {
+	var capturedOwnerID *int64
+	repo := defaultRepo()
+	repo.createFn = func(_ context.Context, p paste.CreateParams) (*paste.Paste, error) {
+		capturedOwnerID = p.OwnerID
+		return &paste.Paste{
+			Key:       "xyz",
+			Content:   p.Content,
+			Language:  p.Language,
+			SizeBytes: len(p.Content),
+			ExpiresAt: time.Now().Add(time.Hour),
+			CreatedAt: time.Now(),
+		}, nil
+	}
+	cfg := &config.Config{BaseURL: "https://example.com", MaxPasteSizeBytes: 5 * 1024 * 1024}
+	srv := server.New(cfg, nil, repo, nil, nil)
+	wrapped := injectSession(srv, &auth.Session{UserID: 99, Sub: "sub|99", Email: "x@x.com"})
+	ts := httptest.NewServer(wrapped)
+	t.Cleanup(ts.Close)
+
+	body := `{"content":"hello","language":"go","expires_in":"1d"}`
+	resp, err := http.Post(ts.URL+"/api/v1/pastes", "application/json", strings.NewReader(body))
+	if err != nil {
+		t.Fatalf("POST: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Errorf("status = %d, want 201", resp.StatusCode)
+	}
+	if capturedOwnerID == nil || *capturedOwnerID != 99 {
+		t.Errorf("OwnerID = %v, want pointer to 99", capturedOwnerID)
 	}
 }

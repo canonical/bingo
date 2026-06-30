@@ -13,6 +13,12 @@ import (
 
 type contextKey struct{}
 
+// TestSessionKey is an exported alias for the session context key.
+// Use it in tests to inject a *Session without a real session cookie:
+//
+//	ctx := context.WithValue(r.Context(), auth.TestSessionKey{}, &auth.Session{...})
+type TestSessionKey = contextKey
+
 // FromContext returns the authenticated Session from ctx, if any.
 func FromContext(ctx context.Context) (*Session, bool) {
 	s, ok := ctx.Value(contextKey{}).(*Session)

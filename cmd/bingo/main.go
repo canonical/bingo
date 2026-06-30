@@ -10,6 +10,7 @@ import (
 	"syscall"
 	"time"
 
+	"bingo/internal/auth"
 	"bingo/internal/config"
 	"bingo/internal/database"
 	"bingo/internal/paste"
@@ -51,7 +52,22 @@ func run() error {
 	cancelSweep := paste.StartSweep(ctx, repo, time.Hour)
 	defer cancelSweep()
 
-	srv := server.New(cfg, db, repo, nil, nil)
+	authProvider, err := auth.NewProvider(ctx, cfg)
+	if err != nil {
+		return fmt.Errorf("init OIDC provider: %w", err)
+	}
+	if authProvider != nil {
+		slog.Info("OIDC authentication enabled", "issuer", cfg.OIDCIssuerURL)
+	} else {
+		slog.Info("OIDC not configured — running in anonymous mode")
+	}
+
+	var userRepo *auth.UserRepository
+	if authProvider != nil {
+		userRepo = auth.NewUserRepository(db)
+	}
+
+	srv := server.New(cfg, db, repo, authProvider, userRepo)
 
 	httpSrv := &http.Server{
 		Addr:         ":" + cfg.Port,

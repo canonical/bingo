@@ -98,6 +98,10 @@ func (s *Server) handleCreatePaste(w http.ResponseWriter, r *http.Request) {
 		Title:     req.Title,
 		ExpiresIn: ei,
 	}
+	if sess, ok := auth.FromContext(r.Context()); ok {
+		id := sess.UserID
+		params.OwnerID = &id
+	}
 	p, err := s.repo.Create(r.Context(), params)
 	if err != nil {
 		slog.Error("create paste", "err", err)
@@ -176,6 +180,35 @@ func (s *Server) getPasteOrError(w http.ResponseWriter, ctx context.Context, k s
 
 func (s *Server) handleDeletePaste(w http.ResponseWriter, r *http.Request) {
 	k := r.PathValue("key")
+
+	// Fetch paste to check ownership before deleting.
+	p, err := s.repo.GetByKey(r.Context(), k)
+	if err != nil {
+		if errors.Is(err, paste.ErrNotFound) {
+			writeError(w, http.StatusNotFound, "paste_not_found", "Paste not found.")
+			return
+		}
+		slog.Error("get paste for delete", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "Internal server error.")
+		return
+	}
+
+	if p.OwnerID == nil {
+		// Anonymous pastes can only be removed by expiry, not explicitly deleted.
+		writeError(w, http.StatusForbidden, "forbidden", "Anonymous pastes cannot be deleted.")
+		return
+	}
+
+	sess, ok := auth.FromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthenticated", "Login required to delete this paste.")
+		return
+	}
+	if sess.UserID != *p.OwnerID {
+		writeError(w, http.StatusForbidden, "forbidden", "You do not own this paste.")
+		return
+	}
+
 	if err := s.repo.Delete(r.Context(), k); err != nil {
 		slog.Error("delete paste", "err", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Internal server error.")
@@ -191,9 +224,14 @@ func (s *Server) handleListLanguages(w http.ResponseWriter, r *http.Request) {
 // handleListMyPastes returns the authenticated user's pastes.
 // Requires an active session; returns 401 when the user is not authenticated.
 func (s *Server) handleListMyPastes(w http.ResponseWriter, r *http.Request) {
+	if r.URL.Query().Get("mine") != "true" {
+		writeError(w, http.StatusBadRequest, "invalid_request", "This endpoint requires ?mine=true.")
+		return
+	}
+
 	sess, ok := auth.FromContext(r.Context())
 	if !ok {
-		writeError(w, http.StatusUnauthorized, "unauthenticated", "Authentication required.")
+		writeError(w, http.StatusUnauthorized, "unauthenticated", "Login required.")
 		return
 	}
 	pastes, err := s.repo.ListByOwner(r.Context(), sess.UserID, 100)
