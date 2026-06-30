@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -10,7 +11,10 @@ import (
 	"syscall"
 	"time"
 
+	_ "github.com/jackc/pgx/v5/stdlib"
+
 	"bingo/internal/config"
+	"bingo/internal/paste"
 	"bingo/internal/server"
 )
 
@@ -30,7 +34,18 @@ func run() error {
 	logger := newLogger(cfg.LogLevel)
 	slog.SetDefault(logger)
 
-	srv := server.New(cfg)
+	db, err := sql.Open("pgx", cfg.DatabaseURL)
+	if err != nil {
+		return fmt.Errorf("open database: %w", err)
+	}
+	defer db.Close()
+
+	if err := db.Ping(); err != nil {
+		return fmt.Errorf("ping database: %w", err)
+	}
+
+	repo := paste.NewPostgresRepository(db)
+	srv := server.New(cfg, db, repo)
 
 	httpSrv := &http.Server{
 		Addr:         ":" + cfg.Port,
