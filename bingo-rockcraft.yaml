@@ -22,6 +22,7 @@ parts:
     # main package lives at cmd/bingo/, not at the module root — override build.
     override-build: |
       go build -o bin/bingo ./cmd/bingo
+      install -Dm755 bin/bingo "${CRAFT_PART_INSTALL}/bin/bingo"
     organize:
       bin/bingo: usr/local/bin/bingo
 
