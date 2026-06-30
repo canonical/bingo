@@ -17,14 +17,19 @@ type Server struct {
 	cfg      *config.Config
 	db       *sql.DB
 	repo     paste.Repository
-	auth     *auth.Provider      // nil when auth is disabled
+	auth     *auth.Provider       // nil when auth is disabled
 	userRepo *auth.UserRepository // nil when auth is disabled
+	handler  http.Handler         // pre-built middleware chain
 }
 
 // New creates a Server with all API routes registered.
-// authProvider and userRepo may be nil when authentication is disabled.
+// authProvider and userRepo may be nil when authentication is disabled,
+// but they must both be nil or both be non-nil.
 // db may be nil in tests that do not exercise the healthz DB ping.
 func New(cfg *config.Config, db *sql.DB, repo paste.Repository, authProvider *auth.Provider, userRepo *auth.UserRepository) *Server {
+	if (authProvider == nil) != (userRepo == nil) {
+		panic("server: authProvider and userRepo must both be nil or both be non-nil")
+	}
 	s := &Server{
 		mux:      http.NewServeMux(),
 		cfg:      cfg,
@@ -34,13 +39,14 @@ func New(cfg *config.Config, db *sql.DB, repo paste.Repository, authProvider *au
 		userRepo: userRepo,
 	}
 	s.registerRoutes()
+	s.handler = s.corsMiddleware(s.auth.Middleware(s.mux))
 	return s
 }
 
-// ServeHTTP implements http.Handler, delegating through CORS + auth middleware
-// and then to the internal ServeMux.
+// ServeHTTP implements http.Handler, delegating through the pre-built
+// CORS + auth middleware chain to the internal ServeMux.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.corsMiddleware(s.auth.Middleware(s.mux)).ServeHTTP(w, r)
+	s.handler.ServeHTTP(w, r)
 }
 
 // corsMiddleware restricts allowed origins to s.cfg.BaseURL.

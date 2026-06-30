@@ -43,8 +43,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Validate state to prevent CSRF on the callback itself.
-	stateCookie, err := r.Cookie("oidc_state")
-	if err != nil || stateCookie.Value == "" || stateCookie.Value != r.URL.Query().Get("state") {
+	if !validateCallbackState(r) {
 		writeError(w, http.StatusBadRequest, "invalid_state", "OIDC state mismatch — possible CSRF.")
 		return
 	}
@@ -100,4 +99,12 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	}
 	auth.ClearCSRFCookie(w)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+// validateCallbackState reports whether the oidc_state cookie is present,
+// non-empty, and matches the "state" query parameter. This is the CSRF guard
+// for the OIDC authorization-code callback.
+func validateCallbackState(r *http.Request) bool {
+	cookie, err := r.Cookie("oidc_state")
+	return err == nil && cookie.Value != "" && cookie.Value == r.URL.Query().Get("state")
 }
