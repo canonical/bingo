@@ -235,7 +235,6 @@ func TestPostgresRepository_DeleteExpired(t *testing.T) {
 
 func TestPostgresRepository_ListByOwner(t *testing.T) {
 	repo := requireDB(t)
-	t.Cleanup(func() { cleanPastes(t) })
 
 	// Insert a fake owner into users.
 	var ownerID int64
@@ -247,6 +246,7 @@ func TestPostgresRepository_ListByOwner(t *testing.T) {
 		t.Fatalf("insert user: %v", err)
 	}
 	t.Cleanup(func() {
+		cleanPastes(t)
 		testDB.ExecContext(context.Background(), "DELETE FROM users WHERE id = $1", ownerID) //nolint:errcheck
 	})
 
