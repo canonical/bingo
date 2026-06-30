@@ -1,0 +1,24 @@
+# charms_integration.yaml — Charm integration CI.
+# Delegates to charm-ci integration-test.yml which builds the rock + charm,
+# then runs spread integration suites defined in spread.yaml via opcli.
+# Reference: https://github.com/canonical/charm-ci/.github/workflows/integration-test.yml
+name: Charm Integration Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - feat/initial-development-isd-6054
+
+jobs:
+  integration-test:
+    name: Integration Tests
+    uses: canonical/charm-ci/.github/workflows/integration-test.yml@main
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+    secrets: inherit
+    with:
+      working-directory: .

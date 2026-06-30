@@ -1,0 +1,31 @@
+# charms_lint_and_unit.yaml — Charm Python CI.
+# Runs tox envs: fmt (check), lint, static (mypy), unit (pytest + coverage).
+name: Charm Lint & Unit Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+      - feat/initial-development-isd-6054
+
+jobs:
+  lint-and-unit:
+    name: Charm ${{ matrix.toxenv }}
+    runs-on: ubuntu-24.04
+    strategy:
+      matrix:
+        toxenv: [lint, static, unit]
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install tox
+        run: pip install tox
+
+      - name: Run tox ${{ matrix.toxenv }}
+        run: tox -e ${{ matrix.toxenv }}

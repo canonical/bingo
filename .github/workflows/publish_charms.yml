@@ -1,0 +1,29 @@
+# publish_charms.yml — Publish to CharmHub.
+# Delegates to charm-ci publish-artifacts.yml which calls opcli to upload
+# the built rock and charm to their respective registries.
+# Reference: https://github.com/canonical/charm-ci/.github/workflows/publish-artifacts.yml
+name: Publish Charms
+
+on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "CharmHub channel (e.g. latest/edge, 1.0/stable)"
+        required: false
+        type: string
+      dry-run:
+        description: "Validate artifacts without uploading"
+        type: boolean
+        default: false
+
+jobs:
+  publish:
+    name: Publish to CharmHub
+    uses: canonical/charm-ci/.github/workflows/publish-artifacts.yml@main
+    with:
+      channel: ${{ inputs.channel }}
+      dry-run: ${{ inputs.dry-run }}
+    permissions:
+      contents: read
+      actions: read
+    secrets: inherit
