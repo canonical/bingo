@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -11,9 +10,8 @@ import (
 	"syscall"
 	"time"
 
-	_ "github.com/jackc/pgx/v5/stdlib"
-
 	"bingo/internal/config"
+	"bingo/internal/database"
 	"bingo/internal/paste"
 	"bingo/internal/server"
 )
@@ -34,17 +32,25 @@ func run() error {
 	logger := newLogger(cfg.LogLevel)
 	slog.SetDefault(logger)
 
-	db, err := sql.Open("pgx", cfg.DatabaseURL)
+	db, err := database.Open(cfg.DatabaseURL)
 	if err != nil {
 		return fmt.Errorf("open database: %w", err)
 	}
 	defer db.Close()
 
-	if err := db.Ping(); err != nil {
-		return fmt.Errorf("ping database: %w", err)
+	if err := database.Migrate(db); err != nil {
+		return fmt.Errorf("migrate database: %w", err)
 	}
+	slog.Info("database migrations applied")
 
 	repo := paste.NewPostgresRepository(db)
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	cancelSweep := paste.StartSweep(ctx, repo, time.Hour)
+	defer cancelSweep()
+
 	srv := server.New(cfg, db, repo)
 
 	httpSrv := &http.Server{
@@ -54,9 +60,6 @@ func run() error {
 		WriteTimeout: 30 * time.Second,
 		IdleTimeout:  120 * time.Second,
 	}
-
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
-	defer stop()
 
 	go func() {
 		slog.Info("server starting", "addr", httpSrv.Addr)
