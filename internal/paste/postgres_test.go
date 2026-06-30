@@ -80,6 +80,9 @@ func TestPostgresRepository_Create(t *testing.T) {
 	if p.Language != params.Language {
 		t.Errorf("Language = %q, want %q", p.Language, params.Language)
 	}
+	if p.Title != params.Title {
+		t.Errorf("Title = %q, want %q", p.Title, params.Title)
+	}
 	if p.SizeBytes != len(params.Content) {
 		t.Errorf("SizeBytes = %d, want %d", p.SizeBytes, len(params.Content))
 	}
@@ -146,6 +149,11 @@ func TestPostgresRepository_Delete(t *testing.T) {
 	_, err = repo.GetByKey(context.Background(), p.Key)
 	if err != paste.ErrNotFound {
 		t.Errorf("after Delete, GetByKey error = %v, want ErrNotFound", err)
+	}
+
+	// Test Delete on non-existent key (must not error)
+	if err := repo.Delete(context.Background(), "does-not-exist-key"); err != nil {
+		t.Errorf("Delete non-existent key error = %v, want nil", err)
 	}
 }
 
