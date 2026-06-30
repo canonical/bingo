@@ -91,3 +91,47 @@ func TestLoad_invalidMaxPasteSize(t *testing.T) {
 		t.Error("Load() with invalid MAX_PASTE_SIZE_BYTES should return error, got nil")
 	}
 }
+
+func TestConfig_AuthEnabled_false(t *testing.T) {
+	// No OIDC env vars set → auth disabled
+	cfg := &config.Config{}
+	if cfg.AuthEnabled() {
+		t.Error("AuthEnabled() = true, want false when no OIDC vars set")
+	}
+}
+
+func TestConfig_AuthEnabled_true(t *testing.T) {
+	cfg := &config.Config{
+		OIDCIssuerURL:    "https://identity.example.com",
+		OIDCClientID:     "my-client",
+		OIDCClientSecret: "s3cr3t",
+		OIDCRedirectURL:  "https://paste.example.com/auth/callback",
+		SessionSecret:    "a-long-enough-secret-value-here!",
+	}
+	if !cfg.AuthEnabled() {
+		t.Error("AuthEnabled() = false, want true when all OIDC vars set")
+	}
+}
+
+func TestLoad_partialOIDCReturnsError(t *testing.T) {
+	// Only some OIDC vars set → error
+	t.Setenv("OIDC_ISSUER_URL", "https://identity.example.com")
+	t.Setenv("OIDC_CLIENT_ID", "my-client")
+	// OIDC_CLIENT_SECRET and OIDC_REDIRECT_URL missing
+	_, err := config.Load()
+	if err == nil {
+		t.Error("Load() with partial OIDC config: want error, got nil")
+	}
+}
+
+func TestLoad_OIDCEnabledRequiresSessionSecret(t *testing.T) {
+	t.Setenv("OIDC_ISSUER_URL", "https://identity.example.com")
+	t.Setenv("OIDC_CLIENT_ID", "my-client")
+	t.Setenv("OIDC_CLIENT_SECRET", "s3cr3t")
+	t.Setenv("OIDC_REDIRECT_URL", "https://paste.example.com/auth/callback")
+	// SESSION_SECRET not set
+	_, err := config.Load()
+	if err == nil {
+		t.Error("Load() with OIDC enabled but no SESSION_SECRET: want error, got nil")
+	}
+}

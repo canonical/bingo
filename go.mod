@@ -4,8 +4,8 @@ go 1.25.0
 
 require (
 	github.com/golang-migrate/migrate/v4 v4.19.1
-	github.com/jackc/pgx/v5 v5.10.0
 	github.com/google/go-cmp v0.7.0
+	github.com/jackc/pgx/v5 v5.10.0
 )
 
 require (
