@@ -50,6 +50,9 @@ func (s *Server) requireCSRF(w http.ResponseWriter, r *http.Request) bool {
 	if s.auth == nil {
 		return true // CSRF only matters when auth is enabled
 	}
+	if _, authenticated := auth.FromContext(r.Context()); !authenticated {
+		return true // anonymous requests don't carry CSRF tokens
+	}
 	if !auth.ValidateCSRF(r) {
 		writeError(w, http.StatusForbidden, "invalid_csrf", "CSRF token missing or invalid")
 		return false

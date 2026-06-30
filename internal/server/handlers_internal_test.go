@@ -56,19 +56,50 @@ func (r *stubCSRFRepo) ListByOwner(_ context.Context, _ int64, _ int) ([]*paste.
 	panic("unexpected ListByOwner call")
 }
 
+// stubRepoWithCreate is a stub that allows Create to succeed, used for testing
+// unauthenticated requests that should reach the handler.
+type stubRepoWithCreate struct{}
+
+func (r *stubRepoWithCreate) Create(_ context.Context, p paste.CreateParams) (*paste.Paste, error) {
+	return &paste.Paste{
+		Key:      "test-key",
+		OwnerID:  p.OwnerID,
+		Content:  p.Content,
+		Language: p.Language,
+		Title:    p.Title,
+	}, nil
+}
+func (r *stubRepoWithCreate) GetByKey(_ context.Context, _ string) (*paste.Paste, error) {
+	panic("unexpected GetByKey call")
+}
+func (r *stubRepoWithCreate) Delete(_ context.Context, _ string) error {
+	panic("unexpected Delete call")
+}
+func (r *stubRepoWithCreate) DeleteExpired(_ context.Context) (int64, error) {
+	panic("unexpected DeleteExpired call")
+}
+func (r *stubRepoWithCreate) ListByOwner(_ context.Context, _ int64, _ int) ([]*paste.Paste, error) {
+	panic("unexpected ListByOwner call")
+}
+
 func TestCreatePaste_authEnabled_missingCSRF_403(t *testing.T) {
 	s := newCSRFTestServer(t, nil)
 
 	body := `{"content":"hello","language":"go","expires_in":"1d"}`
 	r := httptest.NewRequest(http.MethodPost, "/api/v1/pastes", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
+	
+	// Inject a session so the request is authenticated
+	ctx := context.WithValue(r.Context(), auth.TestSessionKey{}, &auth.Session{UserID: 1, Sub: "s", Email: "e@e.com"})
+	r = r.WithContext(ctx)
+	
 	// No X-CSRF-Token header and no csrf_token cookie → should be rejected.
 	w := httptest.NewRecorder()
 
 	s.handleCreatePaste(w, r)
 
 	if w.Code != http.StatusForbidden {
-		t.Errorf("missing CSRF on createPaste: status = %d, want 403", w.Code)
+		t.Errorf("authenticated request missing CSRF on createPaste: status = %d, want 403", w.Code)
 	}
 }
 
@@ -76,12 +107,36 @@ func TestDeletePaste_authEnabled_missingCSRF_403(t *testing.T) {
 	s := newCSRFTestServer(t, nil)
 
 	r := httptest.NewRequest(http.MethodDelete, "/api/v1/pastes/somekey", nil)
+	
+	// Inject a session so the request is authenticated
+	ctx := context.WithValue(r.Context(), auth.TestSessionKey{}, &auth.Session{UserID: 1, Sub: "s", Email: "e@e.com"})
+	r = r.WithContext(ctx)
+	
 	// No X-CSRF-Token header and no csrf_token cookie → should be rejected.
 	w := httptest.NewRecorder()
 
 	s.handleDeletePaste(w, r)
 
 	if w.Code != http.StatusForbidden {
-		t.Errorf("missing CSRF on deletePaste: status = %d, want 403", w.Code)
+		t.Errorf("authenticated request missing CSRF on deletePaste: status = %d, want 403", w.Code)
+	}
+}
+
+func TestCreatePaste_authEnabled_unauthenticated_noCRSF_201(t *testing.T) {
+	s := newCSRFTestServer(t, &stubRepoWithCreate{})
+
+	body := `{"content":"hello","language":"go","expires_in":"1d"}`
+	r := httptest.NewRequest(http.MethodPost, "/api/v1/pastes", strings.NewReader(body))
+	r.Header.Set("Content-Type", "application/json")
+	
+	// Don't inject a session — request is unauthenticated
+	// No X-CSRF-Token header either, but CSRF check should skip for unauthenticated
+	// and request should proceed to handleCreatePaste, which should succeed with 201
+	w := httptest.NewRecorder()
+
+	s.handleCreatePaste(w, r)
+
+	if w.Code != http.StatusCreated {
+		t.Errorf("unauthenticated request to createPaste: status = %d, want 201", w.Code)
 	}
 }
