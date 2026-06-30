@@ -30,3 +30,5 @@ web/.env.local
 lib/**/__pycache__/
 .coverage
 src/__pycache__/
+**/__pycache__/
+**/*.pyc
