@@ -54,9 +54,8 @@ func TestStartSweep_callsDeleteExpired(t *testing.T) {
 		t.Errorf("DeleteExpired called %d times, want >= 1", calls)
 	}
 
-	// Clean up
+	// Clean up — cancel blocks until goroutine exits via wg.Wait().
 	cancelSweep()
-	time.Sleep(10 * time.Millisecond) // Give goroutine time to exit
 }
 
 func TestStartSweep_cancel(t *testing.T) {
@@ -75,16 +74,14 @@ func TestStartSweep_cancel(t *testing.T) {
 	initialCalls := mock.deleteExpiredCalls
 	mock.mu.Unlock()
 
-	// Cancel the sweep
+	// Cancel blocks until goroutine exits via wg.Wait(); finalCalls is stable immediately.
 	cancelSweep()
-	time.Sleep(20 * time.Millisecond)
 
-	// Get final call count - should not increase significantly after cancel
+	// Get final call count — allow for one tick that raced before cancel.
 	mock.mu.Lock()
 	finalCalls := mock.deleteExpiredCalls
 	mock.mu.Unlock()
 
-	// Allow for one more call due to timing, but no new calls should occur after cancel
 	if finalCalls > initialCalls+1 {
 		t.Errorf("after cancel, DeleteExpired continued being called (initial: %d, final: %d)", initialCalls, finalCalls)
 	}
