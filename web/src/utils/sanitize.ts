@@ -7,6 +7,7 @@
 export function sanitizeContent(raw: unknown): string {
   if (typeof raw !== 'string') return ''
   // Keep: 0x09=tab, 0x0A=newline, 0x0D=CR. Strip everything else below 0x20 and DEL.
+  // eslint-disable-next-line no-control-regex
   return raw.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
 }
 
@@ -16,5 +17,6 @@ export function sanitizeContent(raw: unknown): string {
  */
 export function sanitizeTitle(raw: unknown): string {
   if (typeof raw !== 'string') return ''
+  // eslint-disable-next-line no-control-regex
   return raw.replace(/[\x00-\x1F\x7F]/g, '').slice(0, 255)
 }

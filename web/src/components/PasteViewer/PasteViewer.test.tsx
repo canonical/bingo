@@ -77,6 +77,7 @@ describe('PasteViewer', () => {
   it('sanitizes content before rendering (null byte stripped)', () => {
     render(<PasteViewer paste={{ ...basePaste, content: 'hel\x00lo' }} />)
     // content is sanitized — raw null byte does not appear
+    // eslint-disable-next-line no-control-regex
     expect(screen.queryByText(/\x00/)).not.toBeInTheDocument()
     expect(screen.getByText(/hello/)).toBeInTheDocument()
   })
