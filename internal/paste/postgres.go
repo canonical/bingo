@@ -63,7 +63,8 @@ func (r *PostgresRepository) insert(ctx context.Context, k string, expiresAt tim
 	return scanPaste(row)
 }
 
-// GetByKey retrieves a paste by key. Returns ErrNotFound when no row exists.
+// GetByKey retrieves a paste by key. Returns ErrNotFound when no row exists or the paste is expired.
+// Expired pastes are lazily deleted before returning ErrNotFound.
 func (r *PostgresRepository) GetByKey(ctx context.Context, k string) (*Paste, error) {
 	const q = `
 		SELECT id, key, content, language, title, size_bytes, expires_at, created_at, owner_id
@@ -73,7 +74,14 @@ func (r *PostgresRepository) GetByKey(ctx context.Context, k string) (*Paste, er
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, ErrNotFound
 	}
-	return p, err
+	if err != nil {
+		return nil, err
+	}
+	if time.Now().After(p.ExpiresAt) {
+		_ = r.Delete(ctx, k)
+		return nil, ErrNotFound
+	}
+	return p, nil
 }
 
 // Delete removes a paste by key. A missing key is silently ignored.

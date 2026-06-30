@@ -129,6 +129,37 @@ func TestPostgresRepository_GetByKey_notFound(t *testing.T) {
 	}
 }
 
+func TestPostgresRepository_GetByKey_lazyExpiry(t *testing.T) {
+	repo := requireDB(t)
+	t.Cleanup(func() { cleanPastes(t) })
+
+	// Insert a paste with expires_at already in the past.
+	_, err := testDB.ExecContext(context.Background(),
+		`INSERT INTO pastes (key, content, language, size_bytes, expires_at, created_at)
+         VALUES ($1, $2, $3, $4, now() - interval '1 second', now() - interval '2 seconds')`,
+		"lazyexpiredkey", "stale content", "plaintext", 13,
+	)
+	if err != nil {
+		t.Fatalf("insert expired paste: %v", err)
+	}
+
+	_, err = repo.GetByKey(context.Background(), "lazyexpiredkey")
+	if err != paste.ErrNotFound {
+		t.Errorf("GetByKey() on expired paste = %v, want ErrNotFound", err)
+	}
+
+	// Confirm the row was also deleted (lazy delete side-effect).
+	var count int
+	if err := testDB.QueryRowContext(context.Background(),
+		"SELECT COUNT(*) FROM pastes WHERE key = $1", "lazyexpiredkey",
+	).Scan(&count); err != nil {
+		t.Fatalf("count query: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("expired row still in DB after lazy delete, want 0 rows")
+	}
+}
+
 func TestPostgresRepository_Delete(t *testing.T) {
 	repo := requireDB(t)
 	t.Cleanup(func() { cleanPastes(t) })
