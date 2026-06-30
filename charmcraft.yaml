@@ -1,0 +1,110 @@
+# charmcraft.yaml — Canonical go-framework charm for bingo.
+# Reference: https://github.com/canonical/paas-charm/examples/go/charm/charmcraft.yaml
+name: bingo
+
+base: ubuntu@24.04
+
+platforms:
+  amd64:
+
+summary: Canonical Pastebin — Go + React replacement for paste.canonical.com
+description: |
+  bingo is a 12-Factor Go application providing paste creation, retrieval,
+  expiry, optional OIDC authentication (Canonical Identity Platform), and a
+  React frontend styled with Canonical's Vanilla Framework / Pragma components.
+
+type: charm
+
+assumes:
+  - k8s-api
+
+# Charm libraries pulled at build time via: charmcraft fetch-lib
+charm-libs:
+  - lib: traefik-k8s.ingress
+    version: '2'
+  - lib: prometheus-k8s.prometheus_scrape
+    version: '0'
+  - lib: grafana-k8s.grafana_dashboard
+    version: '0.35'
+  - lib: loki-k8s.loki_push_api
+    version: '1'
+  - lib: data-platform-libs.data_interfaces
+    version: '0'
+
+containers:
+  app:
+    resource: app-image
+
+peers:
+  secret-storage:
+    interface: secret-storage
+
+provides:
+  grafana-dashboard:
+    interface: grafana_dashboard
+  metrics-endpoint:
+    interface: prometheus_scrape
+
+requires:
+  ingress:
+    interface: ingress
+    limit: 1
+  logging:
+    interface: loki_push_api
+  postgresql:
+    interface: postgresql_client
+    optional: True
+    limit: 1
+  tracing:
+    interface: tracing
+    optional: True
+    limit: 1
+
+resources:
+  app-image:
+    description: bingo OCI rock (built from bingo-rockcraft.yaml).
+    type: oci-image
+
+config:
+  options:
+    app-port:
+      type: int
+      description: HTTP port the Go server listens on inside the container.
+      default: 8080
+    web-dir:
+      type: string
+      description: |
+        Absolute path to the Vite production build inside the container.
+        paas-charm injects this as WEB_DIR. The go-framework extension stages
+        web/dist at /app/web/dist — set this to match.
+      default: /app/web/dist
+    base-url:
+      type: string
+      description: |
+        Public base URL for generated paste links, e.g. https://paste.canonical.com.
+        Injected as BASE_URL.
+      default: ""
+    max-paste-size-bytes:
+      type: int
+      description: Maximum paste content size in bytes. Injected as MAX_PASTE_SIZE_BYTES.
+      default: 5242880
+    log-level:
+      type: string
+      description: "Logging level: debug|info|warn|error. Injected as LOG_LEVEL."
+      default: info
+
+actions:
+  rotate-session-secret:
+    description: |
+      Rotate the SESSION_SECRET. Existing authenticated sessions are invalidated
+      and users must log in again. Use after a suspected credential compromise.
+
+parts:
+  charm:
+    charm-strict-dependencies: false
+    plugin: charm
+    build-snaps:
+      - rustup
+    override-build: |-
+      rustup default stable
+      craftctl default
