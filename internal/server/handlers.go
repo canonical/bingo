@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"time"
 
+	"bingo/internal/auth"
 	"bingo/internal/paste"
 )
 
@@ -185,6 +186,27 @@ func (s *Server) handleDeletePaste(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleListLanguages(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string][]string{"languages": paste.AllLanguages()})
+}
+
+// handleListMyPastes returns the authenticated user's pastes.
+// Requires an active session; returns 401 when the user is not authenticated.
+func (s *Server) handleListMyPastes(w http.ResponseWriter, r *http.Request) {
+	sess, ok := auth.FromContext(r.Context())
+	if !ok {
+		writeError(w, http.StatusUnauthorized, "unauthenticated", "Authentication required.")
+		return
+	}
+	pastes, err := s.repo.ListByOwner(r.Context(), sess.UserID, 100)
+	if err != nil {
+		slog.Error("list pastes by owner", "err", err)
+		writeError(w, http.StatusInternalServerError, "internal_error", "Internal server error.")
+		return
+	}
+	out := make([]pasteResponse, 0, len(pastes))
+	for _, p := range pastes {
+		out = append(out, s.toPasteResponse(p))
+	}
+	writeJSON(w, http.StatusOK, map[string][]pasteResponse{"pastes": out})
 }
 
 func (s *Server) toPasteResponse(p *paste.Paste) pasteResponse {

@@ -51,7 +51,7 @@ func run() error {
 	cancelSweep := paste.StartSweep(ctx, repo, time.Hour)
 	defer cancelSweep()
 
-	srv := server.New(cfg, db, repo)
+	srv := server.New(cfg, db, repo, nil, nil)
 
 	httpSrv := &http.Server{
 		Addr:         ":" + cfg.Port,

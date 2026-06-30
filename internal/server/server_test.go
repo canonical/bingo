@@ -47,7 +47,7 @@ func newTestServer(t *testing.T, repo paste.Repository) *httptest.Server {
 		BaseURL:           "https://example.com",
 		MaxPasteSizeBytes: 5 * 1024 * 1024,
 	}
-	srv := server.New(cfg, nil, repo) // nil db: healthz ping skipped in unit tests
+	srv := server.New(cfg, nil, repo, nil, nil) // nil db: healthz ping skipped in unit tests
 	ts := httptest.NewServer(srv)
 	t.Cleanup(ts.Close)
 	return ts
@@ -187,7 +187,7 @@ func TestCreatePaste_tooLarge(t *testing.T) {
 		BaseURL:           "https://example.com",
 		MaxPasteSizeBytes: 10, // tiny limit for test
 	}
-	srv := server.New(cfg, nil, defaultRepo())
+	srv := server.New(cfg, nil, defaultRepo(), nil, nil)
 	ts := httptest.NewServer(srv)
 	t.Cleanup(ts.Close)
 
@@ -224,7 +224,7 @@ func TestCreatePaste_atSizeLimit(t *testing.T) {
 			CreatedAt: time.Now(),
 		}, nil
 	}
-	srv := server.New(cfg, nil, repo)
+	srv := server.New(cfg, nil, repo, nil, nil)
 	ts := httptest.NewServer(srv)
 	t.Cleanup(ts.Close)
 

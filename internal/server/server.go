@@ -6,40 +6,72 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"bingo/internal/auth"
 	"bingo/internal/config"
 	"bingo/internal/paste"
 )
 
 // Server holds the HTTP router, application configuration, and storage.
 type Server struct {
-	mux  *http.ServeMux
-	cfg  *config.Config
-	db   *sql.DB
-	repo paste.Repository
+	mux      *http.ServeMux
+	cfg      *config.Config
+	db       *sql.DB
+	repo     paste.Repository
+	auth     *auth.Provider      // nil when auth is disabled
+	userRepo *auth.UserRepository // nil when auth is disabled
 }
 
 // New creates a Server with all API routes registered.
+// authProvider and userRepo may be nil when authentication is disabled.
 // db may be nil in tests that do not exercise the healthz DB ping.
-func New(cfg *config.Config, db *sql.DB, repo paste.Repository) *Server {
+func New(cfg *config.Config, db *sql.DB, repo paste.Repository, authProvider *auth.Provider, userRepo *auth.UserRepository) *Server {
 	s := &Server{
-		mux:  http.NewServeMux(),
-		cfg:  cfg,
-		db:   db,
-		repo: repo,
+		mux:      http.NewServeMux(),
+		cfg:      cfg,
+		db:       db,
+		repo:     repo,
+		auth:     authProvider,
+		userRepo: userRepo,
 	}
 	s.registerRoutes()
 	return s
 }
 
-// ServeHTTP implements http.Handler, delegating to the internal ServeMux.
+// ServeHTTP implements http.Handler, delegating through CORS + auth middleware
+// and then to the internal ServeMux.
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	s.mux.ServeHTTP(w, r)
+	s.corsMiddleware(s.auth.Middleware(s.mux)).ServeHTTP(w, r)
 }
 
-// registerRoutes wires all API endpoints to their handler methods.
+// corsMiddleware restricts allowed origins to s.cfg.BaseURL.
+func (s *Server) corsMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := r.Header.Get("Origin")
+		if origin != "" && origin == s.cfg.BaseURL {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Access-Control-Allow-Credentials", "true")
+			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, DELETE, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-CSRF-Token")
+		}
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
+// registerRoutes wires all API and auth endpoints.
 func (s *Server) registerRoutes() {
+	// Auth endpoints
+	s.mux.HandleFunc("GET /auth/login", s.handleLogin)
+	s.mux.HandleFunc("GET /auth/callback", s.handleCallback)
+	s.mux.HandleFunc("GET /auth/logout", s.handleLogout)
+
+	// API endpoints
 	s.mux.HandleFunc("GET /api/v1/healthz", s.handleHealthz)
 	s.mux.HandleFunc("POST /api/v1/pastes", s.handleCreatePaste)
+	s.mux.HandleFunc("GET /api/v1/pastes", s.handleListMyPastes)
 	s.mux.HandleFunc("GET /api/v1/pastes/{key}", s.handleGetPaste)
 	s.mux.HandleFunc("GET /api/v1/pastes/{key}/raw", s.handleGetPasteRaw)
 	s.mux.HandleFunc("DELETE /api/v1/pastes/{key}", s.handleDeletePaste)
