@@ -45,7 +45,10 @@ type createResponse struct {
 
 func (s *Server) handleCreatePaste(w http.ResponseWriter, r *http.Request) {
 	// Limit body size before any read to prevent memory exhaustion.
-	r.Body = http.MaxBytesReader(w, r.Body, s.cfg.MaxPasteSizeBytes+1)
+	// Use MaxPasteSizeBytes + overhead for JSON framing; the precise content
+	// size check below enforces the exact limit on the content field itself.
+	const jsonOverhead = 4096
+	r.Body = http.MaxBytesReader(w, r.Body, s.cfg.MaxPasteSizeBytes+jsonOverhead)
 
 	var req createRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {

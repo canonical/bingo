@@ -201,6 +201,43 @@ func TestCreatePaste_tooLarge(t *testing.T) {
 	}
 }
 
+func TestCreatePaste_atSizeLimit(t *testing.T) {
+	// Content at exactly MaxPasteSizeBytes must be accepted (returns 201, not 413).
+	const limit = 10
+	cfg := &config.Config{
+		BaseURL:           "https://example.com",
+		MaxPasteSizeBytes: limit,
+	}
+	repo := defaultRepo()
+	repo.createFn = func(_ context.Context, p paste.CreateParams) (*paste.Paste, error) {
+		return &paste.Paste{
+			Key:       "limitkey",
+			Content:   p.Content,
+			Language:  p.Language,
+			SizeBytes: len(p.Content),
+			ExpiresAt: time.Now().Add(24 * time.Hour),
+			CreatedAt: time.Now(),
+		}, nil
+	}
+	srv := server.New(cfg, nil, repo)
+	ts := httptest.NewServer(srv)
+	t.Cleanup(ts.Close)
+
+	atLimitContent := bytes.Repeat([]byte("x"), limit)
+	body, _ := json.Marshal(map[string]string{
+		"content": string(atLimitContent), "language": "go", "expires_in": "1d",
+	})
+	resp, err := http.Post(ts.URL+"/api/v1/pastes", "application/json", bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("POST: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		t.Errorf("content at limit: status = %d, want 201", resp.StatusCode)
+	}
+}
+
 func TestGetPaste_success(t *testing.T) {
 	expiry := time.Now().Add(24 * time.Hour).UTC()
 	repo := defaultRepo()
