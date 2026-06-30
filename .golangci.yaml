@@ -1,0 +1,20 @@
+run:
+  timeout: 5m
+
+linters:
+  enable:
+    - govet
+    - staticcheck
+    - sloglint
+  # gofmt is enabled by default in golangci-lint
+  disable-all: false
+
+linters-settings:
+  govet:
+    enable:
+      - shadow
+
+issues:
+  # Show all issues, not just the first 3 per linter
+  max-issues-per-linter: 0
+  max-same-issues: 0
