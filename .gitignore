@@ -1,0 +1,28 @@
+# Git worktrees
+.worktrees/
+
+# Go
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# Frontend
+web/node_modules/
+web/dist/
+web/.env.local
+
+# Environment
+.env
+.env.local
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
