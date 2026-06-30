@@ -29,7 +29,6 @@ func TestMain(m *testing.M) {
 	if err != nil {
 		log.Fatalf("open test db: %v", err)
 	}
-	defer testDB.Close()
 
 	if err := database.Migrate(testDB); err != nil {
 		log.Fatalf("migrate test db: %v", err)
