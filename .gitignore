@@ -26,3 +26,4 @@ web/.env.local
 .vscode/
 *.swp
 *~
+/bingo
