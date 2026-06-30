@@ -28,7 +28,7 @@ component library.
 
 ## 2. Repository Structure: Mono-repo
 
-This project uses a **single mono-repo** (`bingo-k8s-operator`) containing both the
+This project uses a **single mono-repo** (`bingo`) containing both the
 Go application workload and the Canonical 12-Factor OCI charm, modeled on the
 `github-runner-operators`[^3] repository pattern.
 
@@ -37,7 +37,7 @@ Go application workload and the Canonical 12-Factor OCI charm, modeled on the
 ### Target Layout
 
 ```
-bingo-k8s-operator/
+bingo/
 ├── artifacts.yaml              # charm-ci build manifest (1 rock + 1 charm)
 ├── spread.yaml                 # charm-ci test orchestration
 ├── concierge.yaml              # env provisioning (Juju, MicroK8s, LXD)
@@ -51,10 +51,10 @@ bingo-k8s-operator/
 │   ├── server/                 # HTTP server, middleware, routing
 │   ├── paste/                  # domain: entity, repository interface, postgres impl
 │   ├── database/               # connection pool, migrations, helpers
-│   ├── slug/                   # base62 slug generation
+│   ├── key/                    # base62 key generation
 │   └── auth/                   # OIDC middleware
 │
-├── web/                        # React + TypeScript frontend (Pragma components)
+├── web/                        # React + TypeScript frontend (Vanilla + Pragma)
 │   ├── package.json
 │   ├── tsconfig.json
 │   ├── src/
@@ -115,14 +115,17 @@ The Go workload follows the community project layout[^4]: thin entry points unde
 | Component | Choice | Notes |
 |-----------|--------|-------|
 | Framework | React + TypeScript | Canonical's standard for interactive web apps |
-| Components & Styles | Pragma[^2] MCP components (`@canonical/react-components`) | React-native; used by MAAS UI, Juju Dashboard, snapcraft.io, ubuntu.com/pro |
-| Syntax Highlighting | Client-side (React library, e.g. `react-syntax-highlighter`) | API transfers language metadata only |
+| CSS Framework | Vanilla Framework[^11] | Canonical's design system; keeps bingo visually consistent with other Canonical websites |
+| Components | Pragma[^2] React components (`@canonical/react-components`), built on Vanilla[^11] | React-native; used by MAAS UI[^16], Juju Dashboard[^17], snapcraft.io, ubuntu.com/pro |
+| Syntax Highlighting | Client-side via `react-syntax-highlighter`[^12] | Confirmed choice: ~7.5M weekly downloads, actively maintained, TypeScript types, broad coverage (highlight.js + Prism). API transfers language metadata only |
 | Build | Vite (or CRA replacement) | Fast dev server, optimized production builds |
 | Testing | Vitest (unit) + Playwright (e2e) | Full frontend coverage |
 
 **Frontend workflow:** React renders the UI (paste form, paste viewer, syntax
-highlighting) client-side. It fetches data from the Go JSON API via HTTP. Pragma[^2]
-components plug in directly as React components.
+highlighting) client-side, styled with Canonical's Vanilla Framework[^11] so the look
+and feel matches other Canonical web properties. It fetches data from the Go JSON API
+via HTTP. Pragma[^2] components (which implement Vanilla) plug in directly as React
+components.
 
 ### Deployment & CI
 
@@ -141,17 +144,21 @@ components plug in directly as React components.
 ## 4. Authentication: OIDC via Identity Platform
 
 Authentication uses **OIDC** (OpenID Connect) connected to the new Canonical Identity
-Platform (CIdP). **Authentication is required to access the application** — there
-are no anonymous pastes.
+Platform (CIdP). **OIDC must be supported, but it is not required to use the
+application.** Anonymous pastes are allowed, and operators must be able to deploy
+bingo without configuring an identity provider.
 
 ### Purpose
 
-All users must authenticate via OIDC before using bingo. Every paste is associated
-with the authenticated user's identity (`owner_id` is always populated).
-Authenticated users gain:
+When OIDC is configured and a user logs in, their pastes are associated with their
+identity (`owner_id` is populated). Authenticated users gain:
 
 - A "my pastes" view listing their own pastes.
-- All pastes are owned and attributed to the creating user.
+- Ownership and attribution of the pastes they create.
+
+When OIDC is not configured, or a user chooses not to log in, pastes are created
+anonymously (`owner_id` is `NULL`). Anonymous pastes are not listed under any
+"my pastes" view and expose no owner-only actions.
 
 ### Security Considerations
 
@@ -163,9 +170,10 @@ Authenticated users gain:
   CSRF tokens.
 - **CORS:** Restrict allowed origins to the production domain(s). Do not use wildcard
   origins in production.
-- **Authorization:** Only the paste owner can delete their own paste. Verify
-  ownership server-side on every privileged action. Unauthenticated requests are
-  rejected with `401`.
+- **Authorization:** Only the owner of an owned paste can delete it. Verify ownership
+  server-side on every privileged action. When authentication is enabled, owner-only
+  actions require a valid session; requests for those actions without one are rejected
+  with `401`. Anonymous pastes have no owner and expose no owner-only actions.
 
 ### Implementation
 
@@ -174,7 +182,9 @@ Authenticated users gain:
 - The Go API reads user identity from the validated session and injects it into the
   request context.
 - Configuration via environment variables: `OIDC_ISSUER_URL`, `OIDC_CLIENT_ID`,
-  `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URL`.
+  `OIDC_CLIENT_SECRET`, `OIDC_REDIRECT_URL`. These are **optional** — when they are
+  unset, authentication is disabled, the application still starts and serves traffic,
+  and every paste is created anonymously.
 
 ---
 
@@ -185,17 +195,16 @@ Referencing `dpaste`[^1] as the conceptual baseline:
 ### Core Features
 
 - **Paste creation & retrieval:** Submit raw text with syntax highlighting metadata
-  (language key), return a unique slug via JSON, fetch paste content + metadata via
+  (language key), return a unique key via JSON, fetch paste content + metadata via
   JSON API.
-- **Unique slug generation:** Base62, collision-resistant, starting at 4 chars; on
+- **Unique key generation:** Base62, collision-resistant, starting at 4 chars; on
   `UNIQUE` violation, retry with length + 1 (dpaste pattern).
 - **Expiration (mandatory):** Every paste expires. Allowed durations: `1d`, `1w`,
   `1mo`, `3mo` (default), `1y` (max). No keep-forever option.
-- **Burn-after-read:** One-time paste semantics with configurable `view_limit`.
-  Atomic read-then-burn ensures concurrent readers cannot both win.
-- **Deletion:** Only the paste owner (authenticated user who created it) can delete
-  their paste. Ownership is enforced server-side via `owner_id`.
-- **Raw endpoint:** `GET /api/v1/pastes/{slug}/raw` returns `text/plain` (curl-friendly).
+- **Deletion:** Only the owner of an owned paste (the authenticated user who created
+  it) can delete it. Ownership is enforced server-side via `owner_id`. Anonymous
+  pastes have no owner and are removed only by expiry.
+- **Raw endpoint:** `GET /api/v1/pastes/{key}/raw` returns `text/plain` (curl-friendly).
 - **Language registry:** `GET /api/v1/languages` serves available syntax languages,
   validated on create.
 - **Background expiry sweep:** `DELETE FROM pastes WHERE expires_at < now();` plus
@@ -205,8 +214,11 @@ Referencing `dpaste`[^1] as the conceptual baseline:
 
 ### Content Size Limit
 
-Maximum paste content: **5 MiB** (5,242,880 bytes). Enforced at the API boundary
-(`413 Content Too Large`) and via database CHECK constraint.
+Maximum paste content defaults to **5 MiB** (5,242,880 bytes) and is **configurable**
+via the `MAX_PASTE_SIZE_BYTES` environment variable, so operators can raise the limit
+for users who need larger pastes. Enforced at the API boundary (`413 Content Too
+Large`) against the configured value, with a positive-size database CHECK constraint
+as a defense-in-depth backstop.
 
 ---
 
@@ -215,25 +227,19 @@ Maximum paste content: **5 MiB** (5,242,880 bytes). Enforced at the API boundary
 ```sql
 CREATE TABLE pastes (
     id                BIGINT      GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
-    slug              TEXT        NOT NULL UNIQUE,
+    key               TEXT        NOT NULL UNIQUE,
     content           TEXT        NOT NULL,
     language          VARCHAR(64) NOT NULL DEFAULT 'plaintext',
     title             VARCHAR(255),
     size_bytes        INTEGER     NOT NULL,
-    burn_after_read   BOOLEAN     NOT NULL DEFAULT false,
     expires_at        TIMESTAMPTZ NOT NULL,
-    view_count        INTEGER     NOT NULL DEFAULT 0,
-    view_limit        INTEGER,
     created_at        TIMESTAMPTZ NOT NULL DEFAULT now(),
-    owner_id          BIGINT      NOT NULL,  -- always populated; auth is required
+    owner_id          BIGINT,                -- NULL for anonymous pastes; set when authenticated
 
-    CONSTRAINT view_limit_consistent CHECK (
-        (burn_after_read     AND view_limit IS NOT NULL AND view_limit >= 1) OR
-        (NOT burn_after_read AND view_limit IS NULL)
-    ),
-    CONSTRAINT view_count_nonneg     CHECK (view_count >= 0),
-    CONSTRAINT size_within_limit     CHECK (size_bytes BETWEEN 1 AND 5242880),
-    CONSTRAINT slug_length           CHECK (char_length(slug) BETWEEN 4 AND 32),
+    -- Upper size bound is enforced at the API boundary via MAX_PASTE_SIZE_BYTES
+    -- (default 5 MiB); this constraint only guarantees a positive size.
+    CONSTRAINT size_positive         CHECK (size_bytes >= 1),
+    CONSTRAINT key_length            CHECK (char_length(key) BETWEEN 4 AND 32),
     CONSTRAINT expiry_after_creation CHECK (expires_at > created_at)
 );
 
@@ -259,16 +265,18 @@ CREATE INDEX pastes_owner_id_idx   ON pastes (owner_id);
 ## 7. JSON API (`/api/v1`)
 
 All requests/responses are `application/json` (except `/raw`). Timestamps are RFC 3339
-UTC. All endpoints (except `/api/v1/healthz`) require a valid OIDC session.
+UTC. Endpoints are accessible anonymously by default; when OIDC is enabled, the
+"my pastes" listing and owner-only actions (such as deleting an owned paste) require a
+valid session.
 
 ### Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
 | `POST` | `/api/v1/pastes` | Create a paste |
-| `GET` | `/api/v1/pastes/{slug}` | Retrieve paste content + metadata |
-| `GET` | `/api/v1/pastes/{slug}/raw` | Raw text/plain body |
-| `DELETE` | `/api/v1/pastes/{slug}` | Delete (owner only) |
+| `GET` | `/api/v1/pastes/{key}` | Retrieve paste content + metadata |
+| `GET` | `/api/v1/pastes/{key}/raw` | Raw text/plain body |
+| `DELETE` | `/api/v1/pastes/{key}` | Delete (owner only) |
 | `GET` | `/api/v1/languages` | Available syntax languages |
 | `GET` | `/api/v1/healthz` | Liveness + DB ping |
 
@@ -279,8 +287,7 @@ UTC. All endpoints (except `/api/v1/healthz`) require a valid OIDC session.
   "content": "print('hello')",
   "language": "python",
   "title": "demo snippet",
-  "expires_in": "3mo",
-  "burn_after_read": false
+  "expires_in": "3mo"
 }
 ```
 
@@ -288,13 +295,12 @@ UTC. All endpoints (except `/api/v1/healthz`) require a valid OIDC session.
 
 ```json
 {
-  "slug": "aB3xY",
+  "key": "aB3xY",
   "url": "https://paste.canonical.com/aB3xY",
   "raw_url": "https://paste.canonical.com/api/v1/pastes/aB3xY/raw",
   "language": "python",
   "title": "demo snippet",
   "size_bytes": 14,
-  "burn_after_read": false,
   "expires_at": "2026-09-21T12:00:00Z",
   "created_at": "2026-06-23T12:00:00Z"
 }
@@ -303,7 +309,7 @@ UTC. All endpoints (except `/api/v1/healthz`) require a valid OIDC session.
 ### Error Envelope (all 4xx/5xx)
 
 ```json
-{ "error": { "code": "content_too_large", "message": "Paste exceeds the 5 MiB limit." } }
+{ "error": { "code": "content_too_large", "message": "Paste exceeds the configured size limit." } }
 ```
 
 | Status | Codes |
@@ -311,7 +317,7 @@ UTC. All endpoints (except `/api/v1/healthz`) require a valid OIDC session.
 | 400 | `invalid_request`, `missing_content`, `invalid_expires_in`, `unknown_language` |
 | 401 | `unauthenticated` |
 | 403 | `forbidden` (not the paste owner) |
-| 404 | `paste_not_found` (also expired/burned) |
+| 404 | `paste_not_found` (also expired) |
 | 413 | `content_too_large` |
 | 429 | `rate_limited` |
 | 500 | `internal_error` |
@@ -325,8 +331,9 @@ is critical at every layer:
 
 ### Backend (Go API)
 
-- **Input validation at the boundary:** reject content > 5 MiB, validate `language`
-  against the registry, enforce `expires_in` enum, sanitize `title` length.
+- **Input validation at the boundary:** reject content larger than the configured
+  `MAX_PASTE_SIZE_BYTES` (default 5 MiB), validate `language` against the registry,
+  enforce `expires_in` enum, sanitize `title` length.
 - **Content scanning:** check submitted content for known exploit patterns (embedded
   `<script>` tags, encoded payloads) before storage. Log and reject suspicious input.
 - **Output encoding:** JSON responses must properly escape all user-supplied strings.
@@ -356,15 +363,15 @@ is critical at every layer:
 
 ### Production URL
 
-- **`https://paste.canonical.com/{slug}`** — canonical URL for viewing a paste.
+- **`https://paste.canonical.com/{key}`** — canonical URL for viewing a paste.
 - **`https://paste.canonical.com/`** — default page is the "new paste" form.
 
 ### API Routing
 
 - `POST /api/v1/pastes` — create.
-- `GET /api/v1/pastes/{slug}` — retrieve.
-- `GET /api/v1/pastes/{slug}/raw` — raw text.
-- `DELETE /api/v1/pastes/{slug}` — delete.
+- `GET /api/v1/pastes/{key}` — retrieve.
+- `GET /api/v1/pastes/{key}/raw` — raw text.
+- `DELETE /api/v1/pastes/{key}` — delete.
 - `GET /api/v1/languages` — language list.
 - `GET /api/v1/healthz` — health check.
 
@@ -376,26 +383,27 @@ decommissioned. Users migrate themselves to the new service.
 
 ## 10. User Workflow
 
-All users must authenticate via OIDC before accessing any page. Unauthenticated
-requests redirect to the OIDC login flow.
+The application is usable anonymously. When OIDC is enabled, users may optionally log
+in to associate pastes with their identity and access the "my pastes" view.
 
-1. **Login** — user authenticates via OIDC (CIdP). On success, session is established.
+1. **Login (optional)** — when OIDC is enabled, the user may authenticate via OIDC
+   (CIdP) to establish a session. Anonymous users skip this step.
 
 2. **Default page** (`/`) is the "new paste" form.
    - Fields: Title (optional), Syntax (from `/api/v1/languages`), Expiration, Content.
-   - Optional: Burn-after-read (+ view limit).
 
-3. **After creation**, redirect to `/{slug}` showing the paste content.
+3. **After creation**, redirect to `/{key}` showing the paste content.
    - View page shows: creation date, expiry, syntax type, content with client-side
      syntax highlighting, "view raw" link, toggle wrap, copy to clipboard.
-   - For burn pastes, show `remaining_views`.
 
-4. **Direct navigation** to `/{slug}` shows the view page.
-   - Expired / missing / burned-out → `404` state.
+4. **Direct navigation** to `/{key}` shows the view page.
+   - Expired / missing → `204 No Content` state (the request succeeded;
+     there is simply no paste to return).
 
 5. **"New paste" link** visible when viewing an existing paste.
 
-6. **"My pastes"** view lists the authenticated user's own pastes.
+6. **"My pastes"** view lists the authenticated user's own pastes (available only when
+   logged in).
 
 ---
 
@@ -430,7 +438,7 @@ red → green → refactor loop during agent execution.
 
 - **Unit tests** (Vitest): component rendering, utility functions, hook behaviour.
 - **End-to-end tests** (Playwright): full user workflows — create paste, view paste,
-  burn-after-read, delete with token, syntax highlighting rendering.
+  delete with token, syntax highlighting rendering.
 - **Coverage gate:** enforce meaningful coverage on components and utilities.
 
 ### Key Principle
@@ -446,7 +454,11 @@ assertions before declaring done.
 
 ### Go Style
 
-- **Primary reference:** Google Go Style Guide[^9].
+- **Primary references:** Canonical's own Go guidelines — Pebble's `STYLE.md`[^13]
+  (also used by github-runner-operators), Juju's `STYLE.md`[^14] and Juju's
+  `CODING.md`[^15] — to keep bingo consistent with other Canonical Go applications.
+  The Google Go Style Guide[^9] is a strong supporting reference and should be
+  followed where the Canonical guides are silent.
 - **`gofmt`-clean** at all times.
 - **Conventional commit** messages.
 - **Standard library first** — reach for `net/http`, `database/sql`, `log/slog`,
@@ -472,9 +484,10 @@ Pebble[^10], Juju, and LXD:
 
 ### React/TypeScript Style
 
-- Follow Canonical's web team conventions (as used in MAAS UI, Juju Dashboard).
+- Follow Canonical's web team conventions, as used in MAAS UI[^16] and Juju
+  Dashboard[^17].
 - Strict TypeScript (`strict: true`).
-- Pragma[^2] components for all UI elements.
+- Vanilla Framework[^11] via Pragma[^2] components for all UI elements.
 - ESLint + Prettier for formatting.
 
 ---
@@ -490,16 +503,18 @@ must be fully stateless.
 |----------|---------|---------|
 | `PORT` | HTTP server bind port | `8080` |
 | `DATABASE_URL` | PostgreSQL connection string | `postgres://user:pass@host:5432/bingo` |
-| `OIDC_ISSUER_URL` | OIDC provider URL (CIdP) | `https://identity.canonical.com` |
-| `OIDC_CLIENT_ID` | OIDC client identifier | `bingo-prod` |
-| `OIDC_CLIENT_SECRET` | OIDC client secret | (secret) |
-| `OIDC_REDIRECT_URL` | OAuth callback URL | `https://paste.canonical.com/auth/callback` |
-| `SESSION_SECRET` | Cookie encryption key | (secret) |
+| `MAX_PASTE_SIZE_BYTES` | Maximum paste content size in bytes | `5242880` (default, 5 MiB) |
+| `OIDC_ISSUER_URL` | OIDC provider URL (CIdP); optional | `https://identity.canonical.com` |
+| `OIDC_CLIENT_ID` | OIDC client identifier; optional | `bingo-prod` |
+| `OIDC_CLIENT_SECRET` | OIDC client secret; optional | (secret) |
+| `OIDC_REDIRECT_URL` | OAuth callback URL; optional | `https://paste.canonical.com/auth/callback` |
+| `SESSION_SECRET` | Cookie encryption key; required only when OIDC is enabled | (secret) |
 | `BASE_URL` | Public base URL for generated links | `https://paste.canonical.com` |
 | `LOG_LEVEL` | Logging level | `info` |
 
-An `.env.example` file documents all variables the `12factor-charm` will map to Juju
-config options.
+The `OIDC_*` and `SESSION_SECRET` variables are **optional**: when they are unset,
+authentication is disabled and all pastes are anonymous. An `.env.example` file
+documents all variables the `12factor-charm` will map to Juju config options.
 
 ---
 
@@ -556,9 +571,9 @@ starts with a failing test.
 
 ### Phase 1: Backend Initialization & API Skeleton
 
-- Initialize Go module (`go mod init bingo-k8s-operator`).
+- Initialize Go module (`go mod init bingo`).
 - Scaffold project structure: `cmd/bingo/main.go`, `internal/server/`,
-  `internal/paste/`, `internal/database/`, `internal/slug/`, `internal/auth/`.
+  `internal/paste/`, `internal/database/`, `internal/key/`, `internal/auth/`.
 - Implement HTTP server binding to `$PORT` using `net/http` ServeMux.
 - Define all API routes (§7) with stub handlers returning `501 Not Implemented`.
 - Write integration test proving the server starts and `/api/v1/healthz` returns 200.
@@ -566,33 +581,39 @@ starts with a failing test.
 
 ### Phase 2: Core Logic & Storage
 
-- Write failing tests for slug generation (base62, collision retry).
-- Implement slug generation in `internal/slug/`.
-- Write failing tests for paste CRUD (create, get by slug, delete, expiry).
+- Write failing tests for key generation (base62, collision retry).
+- Implement key generation in `internal/key/`.
+- Write failing tests for paste CRUD (create, get by key, delete, expiry).
 - Implement PostgreSQL storage in `internal/paste/postgres.go` with repository
   interface.
 - Implement database migrations (`internal/database/migrations/`).
-- Implement burn-after-read transactional logic.
 - Implement background expiry sweep (goroutine with ticker).
-- Implement boundary validation (size, language, expires_in).
+- Implement boundary validation (configurable max size via `MAX_PASTE_SIZE_BYTES`,
+  language, expires_in).
 - Wire handlers to real storage; integration tests against real PostgreSQL.
 
 ### Phase 3: Authentication (OIDC)
 
-- Implement OIDC middleware in `internal/auth/`.
+- Implement **optional** OIDC middleware in `internal/auth/`; when `OIDC_*` config is
+  absent, authentication is disabled and the app runs in anonymous mode.
 - Handle authorization code flow, token validation, session management.
-- All requests require authentication; reject unauthenticated with `401`.
-- Populate `owner_id` on every paste from the authenticated user.
-- Add "my pastes" API endpoint (`GET /api/v1/pastes?mine=true`).
+- Allow anonymous access; when authenticated, owner-only actions require a valid
+  session and reject missing ones with `401`.
+- Populate `owner_id` from the authenticated user when logged in; leave it `NULL` for
+  anonymous pastes.
+- Add "my pastes" API endpoint (`GET /api/v1/pastes?mine=true`), available only when
+  authenticated.
 - Security: CSRF tokens, secure cookies, CORS configuration.
 - Write tests covering auth flow and authorization checks.
 
 ### Phase 4: Frontend (React + Pragma)
 
 - Initialize React + TypeScript project in `web/`.
-- Install Pragma[^2] components (`@canonical/react-components`).
-- Implement pages: New Paste form, Paste Viewer (with syntax highlighting), 404 state.
-- Integrate client-side syntax highlighting (e.g. `react-syntax-highlighter`).
+- Install Vanilla Framework[^11] and Pragma[^2] components
+  (`@canonical/react-components`) for Canonical-consistent styling.
+- Implement pages: New Paste form, Paste Viewer (with syntax highlighting), empty/
+  not-found state.
+- Integrate client-side syntax highlighting via `react-syntax-highlighter`[^12].
 - Wire API calls to the Go backend.
 - Implement input/output hardening (§8): sanitize before render, validate API
   responses, no `dangerouslySetInnerHTML`.
@@ -625,3 +646,12 @@ starts with a failing test.
 [^8]: Superpowers — <https://github.com/obra/Superpowers>
 [^9]: Google Go Style Guide — <https://google.github.io/styleguide/go/>
 [^10]: Pebble — <https://github.com/canonical/pebble>
+[^11]: Vanilla Framework — <https://vanillaframework.io/>, repo
+    <https://github.com/canonical/vanilla-framework>, Figma core component library
+    <https://www.figma.com/community/file/1435297834108003391/vanilla-core-component-library>
+[^12]: react-syntax-highlighter — <https://github.com/react-syntax-highlighter/react-syntax-highlighter>
+[^13]: Pebble STYLE.md — <https://github.com/canonical/pebble/blob/master/STYLE.md>
+[^14]: Juju STYLE.md — <https://github.com/juju/juju/blob/main/STYLE.md>
+[^15]: Juju CODING.md — <https://github.com/juju/juju/blob/main/CODING.md>
+[^16]: MAAS UI — <https://github.com/canonical/maas-ui>
+[^17]: Juju Dashboard — <https://github.com/canonical/juju-dashboard>
