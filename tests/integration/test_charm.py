@@ -88,6 +88,7 @@ async def test_build_and_deploy(ops_test: OpsTest, app_image: str) -> None:
     logger.info("All applications reached active status.")
 
 
+@pytest.mark.abort_on_fail
 async def test_healthz_responds(ops_test: OpsTest) -> None:
     """The /api/v1/healthz endpoint must return HTTP 200."""
     import urllib.request
@@ -115,6 +116,7 @@ async def test_healthz_responds(ops_test: OpsTest) -> None:
         pytest.skip("Traefik not deployed; skipping healthz check")
 
 
+@pytest.mark.abort_on_fail
 async def test_paste_create_anonymous(ops_test: OpsTest) -> None:
     """Anonymous paste creation must return 201 with a key."""
     import json
