@@ -1,4 +1,5 @@
-@use 'vanilla-framework';
+@import 'vanilla-framework';
+@include vanilla;
 
 // Paste viewer: remove default margin from syntax highlighter wrapper
 .paste-code-block {
