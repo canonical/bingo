@@ -212,10 +212,9 @@ The Pragma `Navigation` component renders the correct Vanilla `p-navigation p-na
 - [ ] **Step 1: Rewrite `src/components/Navigation/Navigation.tsx`**
 
 ```tsx
-import { Navigation } from '@canonical/react-components'
-import { Theme } from '@canonical/react-components/dist/enums'
+import { Navigation, Theme } from '@canonical/react-components'
 import { Link } from 'react-router-dom'
-import type { NavItem, GenerateLink } from '@canonical/react-components/dist/components/Navigation/types'
+import type { NavItem, GenerateLink } from '@canonical/react-components'
 
 interface Props {
   isAuthenticated: boolean
