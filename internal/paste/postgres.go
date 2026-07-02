@@ -26,7 +26,7 @@ func NewPostgresRepository(db *sql.DB) *PostgresRepository {
 // On a UNIQUE key collision (pgcode 23505), it retries with a longer key.
 func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (*Paste, error) {
 	expiresAt := time.Now().UTC().Add(params.ExpiresIn.Duration())
-	keyLen := 4
+	keyLen := 10
 
 	for range 10 {
 		k := key.GenerateKey(keyLen)

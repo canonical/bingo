@@ -168,7 +168,7 @@ func TestCreatePaste_unknownLanguage(t *testing.T) {
 	ts := newTestServer(t, defaultRepo())
 
 	resp, err := http.Post(ts.URL+"/api/v1/pastes", "application/json",
-		strings.NewReader(`{"content":"x","language":"brainfuck","expires_in":"1d"}`))
+		strings.NewReader(`{"content":"x","language":"notareal_language_xyz","expires_in":"1d"}`))
 	if err != nil {
 		t.Fatalf("POST: %v", err)
 	}
@@ -294,7 +294,7 @@ func TestGetPaste_expiredLazy(t *testing.T) {
 		return &paste.Paste{
 			Key:       "oldkey",
 			Content:   "stale",
-			Language:  "plaintext",
+			Language:  "text",
 			SizeBytes: 5,
 			ExpiresAt: time.Now().Add(-1 * time.Hour), // already expired
 			CreatedAt: time.Now().Add(-2 * time.Hour),
