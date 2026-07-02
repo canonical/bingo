@@ -20,7 +20,7 @@ export default function NewPasteForm({ onCreated }: Props) {
   const [content, setContent] = useState('')
   const [title, setTitle] = useState('')
   const [language, setLanguage] = useState('text')
-  const [expiresIn, setExpiresIn] = useState<CreatePasteParams['expires_in']>('1mo')
+  const [expiresIn, setExpiresIn] = useState<CreatePasteParams['expires_in']>('3mo')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
