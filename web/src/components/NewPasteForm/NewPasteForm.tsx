@@ -54,7 +54,7 @@ export default function NewPasteForm({ onCreated }: Props) {
   }
 
   return (
-    <form onSubmit={handleSubmit} aria-label="New paste form">
+    <form onSubmit={handleSubmit} aria-label="New paste form" className="p-form p-form--stacked">
       {error && (
         <Notification severity="negative" title="Error" role="alert">
           {error}
