@@ -1,5 +1,5 @@
 import { useNavigate } from 'react-router-dom'
-import Navigation from '../components/Navigation/Navigation'
+import AppNavigation from '../components/Navigation/Navigation'
 import NewPasteForm from '../components/NewPasteForm/NewPasteForm'
 
 export default function HomePage() {
@@ -8,11 +8,14 @@ export default function HomePage() {
 
   return (
     <>
-      <Navigation isAuthenticated={isAuthenticated} />
+      <AppNavigation isAuthenticated={isAuthenticated} />
       <main className="l-main">
-        <section className="p-strip">
+        <section className="p-strip is-shallow">
           <div className="row">
-            <NewPasteForm onCreated={(key) => navigate(`/${key}`)} />
+            <div className="col-8">
+              <h1 className="p-heading--2">New paste</h1>
+              <NewPasteForm onCreated={(key) => navigate(`/${key}`)} />
+            </div>
           </div>
         </section>
       </main>

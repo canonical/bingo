@@ -1,6 +1,6 @@
 import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import Navigation from '../components/Navigation/Navigation'
+import AppNavigation from '../components/Navigation/Navigation'
 import MyPastesList from '../components/MyPastesList/MyPastesList'
 
 export default function MyPastesPage() {
@@ -15,12 +15,14 @@ export default function MyPastesPage() {
 
   return (
     <>
-      <Navigation isAuthenticated userEmail={undefined} />
+      <AppNavigation isAuthenticated userEmail={undefined} />
       <main className="l-main">
-        <section className="p-strip">
+        <section className="p-strip is-shallow">
           <div className="row">
-            <h1>My pastes</h1>
-            <MyPastesList />
+            <div className="col-12">
+              <h1 className="p-heading--2">My pastes</h1>
+              <MyPastesList />
+            </div>
           </div>
         </section>
       </main>

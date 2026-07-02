@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { Spinner, Notification } from '@canonical/react-components'
-import Navigation from '../components/Navigation/Navigation'
+import AppNavigation from '../components/Navigation/Navigation'
 import PasteViewer from '../components/PasteViewer/PasteViewer'
 import { getPaste, deletePaste } from '../api/client'
 import { PasteResponse, ApiRequestError } from '../api/types'
@@ -39,14 +39,30 @@ export default function PastePage() {
 
   return (
     <>
-      <Navigation isAuthenticated={isAuthenticated} />
+      <AppNavigation isAuthenticated={isAuthenticated} />
       <main className="l-main">
-        <section className="p-strip">
+        <section className="p-strip is-shallow">
           <div className="row">
-            {!paste && !notFound && !error && <Spinner role="status" text="Loading…" />}
-            {notFound && <p>Paste not found or has expired. <a href="/">Create a new paste.</a></p>}
-            {error && <Notification severity="negative" title="Error">{error}</Notification>}
-            {paste && <PasteViewer paste={paste} onDelete={isAuthenticated ? handleDelete : undefined} />}
+            <div className="col-12">
+              {!paste && !notFound && !error && <Spinner role="status" text="Loading…" />}
+              {notFound && (
+                <p>
+                  Paste not found or has expired.{' '}
+                  <a href="/">Create a new paste.</a>
+                </p>
+              )}
+              {error && (
+                <Notification severity="negative" title="Error">
+                  {error}
+                </Notification>
+              )}
+              {paste && (
+                <PasteViewer
+                  paste={paste}
+                  onDelete={isAuthenticated ? handleDelete : undefined}
+                />
+              )}
+            </div>
           </div>
         </section>
       </main>
