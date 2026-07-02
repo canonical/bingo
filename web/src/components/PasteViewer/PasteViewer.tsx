@@ -51,53 +51,62 @@ export default function PasteViewer({ paste, onDelete }: Props) {
             </tbody>
           </table>
 
-          {/* Action bar — use <a> with Vanilla classes for navigation links,
-              Pragma Button for interactive actions (copy, wrap, delete) */}
-          <div className="u-sv2" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBlock: '1rem' }}>
-            <a
-              href={paste.raw_url}
-              className="p-button--base is-small"
-              aria-label="View raw"
-            >
-              View raw
-            </a>
-            <a
-              href="/"
-              className="p-button--base is-small"
-              aria-label="New paste"
-            >
-              New paste
-            </a>
-            <Button
-              type="button"
-              appearance="base"
-              small
-              onClick={() => setWrapLines((w) => !w)}
-              aria-pressed={wrapLines}
-            >
-              {wrapLines ? 'Unwrap lines' : 'Wrap lines'}
-            </Button>
-            <Button
-              type="button"
-              appearance="base"
-              small
-              aria-label="Copy to clipboard"
-              onClick={() => navigator.clipboard.writeText(content)}
-            >
-              Copy
-            </Button>
-            {onDelete && (
-              <Button
-                type="button"
-                appearance="negative"
-                small
-                onClick={onDelete}
-                aria-label="Delete paste"
-              >
-                Delete
-              </Button>
-            )}
-          </div>
+          {/* Action bar — nav links and interactive buttons */}
+          <ul className="p-inline-list" role="list" style={{ marginBlock: '1rem' }}>
+           <li className="p-inline-list__item">
+             <a
+               href={paste.raw_url}
+               className="p-button--base is-small"
+               aria-label="View raw"
+             >
+               View raw
+             </a>
+           </li>
+           <li className="p-inline-list__item">
+             <a
+               href="/"
+               className="p-button--base is-small"
+               aria-label="New paste"
+             >
+               New paste
+             </a>
+           </li>
+           <li className="p-inline-list__item">
+             <Button
+               type="button"
+               appearance="base"
+               small
+               onClick={() => setWrapLines((w) => !w)}
+               aria-pressed={wrapLines}
+             >
+               {wrapLines ? 'Unwrap lines' : 'Wrap lines'}
+             </Button>
+           </li>
+           <li className="p-inline-list__item">
+             <Button
+               type="button"
+               appearance="base"
+               small
+               aria-label="Copy to clipboard"
+               onClick={() => navigator.clipboard.writeText(content)}
+             >
+               Copy
+             </Button>
+           </li>
+           {onDelete && (
+             <li className="p-inline-list__item">
+               <Button
+                 type="button"
+                 appearance="negative"
+                 small
+                 onClick={onDelete}
+                 aria-label="Delete paste"
+               >
+                 Delete
+               </Button>
+             </li>
+           )}
+          </ul>
 
           {/* Code block — SyntaxHighlighter renders tokens as React elements,
               never passes untreated API strings to dangerouslySetInnerHTML */}
