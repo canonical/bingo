@@ -36,7 +36,7 @@ describe('MyPastesList', () => {
   it('renders paste keys as links', async () => {
     render(<MemoryRouter><MyPastesList /></MemoryRouter>)
     await waitFor(() => {
-      const link = screen.getByRole('link', { name: /abc12/i })
+      const link = screen.getByRole('link', { name: /my script/i })
       expect(link).toHaveAttribute('href', '/abc12')
     })
   })
