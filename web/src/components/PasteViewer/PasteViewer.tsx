@@ -27,66 +27,91 @@ export default function PasteViewer({ paste, onDelete }: Props) {
     <article aria-label="Paste viewer">
       <Row>
         <Col size={12}>
-          <header>
-            {title && <h1>{title}</h1>}
-            <dl>
-              <dt>Language</dt>
-              <dd>{paste.language}</dd>
-              <dt>Created</dt>
-              <dd>{formatDate(paste.created_at)}</dd>
-              <dt>Expires</dt>
-              <dd>{formatDate(paste.expires_at)}</dd>
-              <dt>Size</dt>
-              <dd>{paste.size_bytes} bytes</dd>
-            </dl>
-          </header>
-          <div className="paste-actions">
-            <a href={paste.raw_url} aria-label="View raw">View raw</a>
-            {' · '}
-            <a href="/" aria-label="New paste">New paste</a>
-            {' · '}
-            <button
+          {title && <h2 className="p-heading--3">{title}</h2>}
+
+          {/* Metadata table */}
+          <table className="p-table--mobile-card u-no-margin--bottom">
+            <tbody>
+              <tr>
+                <td className="u-text--muted">Language</td>
+                <td>{paste.language}</td>
+              </tr>
+              <tr>
+                <td className="u-text--muted">Created</td>
+                <td>{formatDate(paste.created_at)}</td>
+              </tr>
+              <tr>
+                <td className="u-text--muted">Expires</td>
+                <td>{formatDate(paste.expires_at)}</td>
+              </tr>
+              <tr>
+                <td className="u-text--muted">Size</td>
+                <td>{paste.size_bytes} bytes</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Action bar — use <a> with Vanilla classes for navigation links,
+              Pragma Button for interactive actions (copy, wrap, delete) */}
+          <div className="u-sv2" style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginBlock: '1rem' }}>
+            <a
+              href={paste.raw_url}
+              className="p-button--base is-small"
+              aria-label="View raw"
+            >
+              View raw
+            </a>
+            <a
+              href="/"
+              className="p-button--base is-small"
+              aria-label="New paste"
+            >
+              New paste
+            </a>
+            <Button
               type="button"
+              appearance="base"
+              small
               onClick={() => setWrapLines((w) => !w)}
               aria-pressed={wrapLines}
             >
-              {wrapLines ? 'Unwrap' : 'Wrap'} lines
-            </button>
-            {' · '}
-            <button
+              {wrapLines ? 'Unwrap lines' : 'Wrap lines'}
+            </Button>
+            <Button
               type="button"
+              appearance="base"
+              small
               aria-label="Copy to clipboard"
               onClick={() => navigator.clipboard.writeText(content)}
             >
               Copy
-            </button>
+            </Button>
             {onDelete && (
-              <>
-                {' · '}
-                <Button
-                  type="button"
-                  appearance="negative"
-                  small
-                  onClick={onDelete}
-                  aria-label="Delete paste"
-                >
-                  Delete
-                </Button>
-              </>
+              <Button
+                type="button"
+                appearance="negative"
+                small
+                onClick={onDelete}
+                aria-label="Delete paste"
+              >
+                Delete
+              </Button>
             )}
           </div>
-          {/* §8: content passed as children (string) — SyntaxHighlighter does NOT use
-              dangerouslySetInnerHTML for its own injected content; it renders tokens as
-              React elements. We never pass untreated API strings to dangerouslySetInnerHTML. */}
-          <SyntaxHighlighter
-            language={paste.language}
-            style={tomorrow}
-            wrapLines={wrapLines}
-            wrapLongLines={wrapLines}
-            showLineNumbers
-          >
-            {content}
-          </SyntaxHighlighter>
+
+          {/* Code block — SyntaxHighlighter renders tokens as React elements,
+              never passes untreated API strings to dangerouslySetInnerHTML */}
+          <div className="paste-code-block">
+            <SyntaxHighlighter
+              language={paste.language}
+              style={tomorrow}
+              wrapLines={wrapLines}
+              wrapLongLines={wrapLines}
+              showLineNumbers
+            >
+              {content}
+            </SyntaxHighlighter>
+          </div>
         </Col>
       </Row>
     </article>
