@@ -43,17 +43,10 @@ describe('getPaste', () => {
     expect(paste.content).toBe('hello world')
   })
 
-  it('throws ApiRequestError with code paste_not_found on 404', async () => {
-    const response = jsonResponse({ error: { code: 'paste_not_found', message: 'not found' } }, 404)
-    mockFetch.mockResolvedValue(response)
-    try {
-      await getPaste('nope')
-      throw new Error('Should have thrown')
-    } catch (e) {
-      expect(e).toBeInstanceOf(ApiRequestError)
-      expect((e as ApiRequestError).status).toBe(404)
-      expect((e as ApiRequestError).code).toBe('paste_not_found')
-    }
+  it('returns null on 204 No Content (paste absent or expired)', async () => {
+    mockFetch.mockResolvedValue(new Response(null, { status: 204 }))
+    const result = await getPaste('gone')
+    expect(result).toBeNull()
   })
 
   it('throws ApiRequestError when response shape is invalid', async () => {

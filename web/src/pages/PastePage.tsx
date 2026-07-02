@@ -4,12 +4,13 @@ import { Spinner, Notification } from '@canonical/react-components'
 import AppNavigation from '../components/Navigation/Navigation'
 import PasteViewer from '../components/PasteViewer/PasteViewer'
 import { getPaste, deletePaste } from '../api/client'
-import { PasteResponse, ApiRequestError } from '../api/types'
+import { PasteResponse } from '../api/types'
 
 export default function PastePage() {
   const { key } = useParams<{ key: string }>()
   const navigate = useNavigate()
   const [paste, setPaste] = useState<PasteResponse | null>(null)
+  const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const isAuthenticated = document.cookie.includes('csrf_token=')
@@ -17,14 +18,17 @@ export default function PastePage() {
   useEffect(() => {
     if (!key) return
     getPaste(key)
-      .then(setPaste)
-      .catch((err) => {
-        if (err instanceof ApiRequestError && err.status === 404) {
+      .then((result) => {
+        if (result === null) {
           setNotFound(true)
         } else {
-          setError(err instanceof Error ? err.message : 'Failed to load paste.')
+          setPaste(result)
         }
       })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : 'Failed to load paste.')
+      })
+      .finally(() => setLoading(false))
   }, [key])
 
   async function handleDelete() {
@@ -44,7 +48,7 @@ export default function PastePage() {
         <section className="p-strip is-shallow">
           <div className="row">
             <div className="col-12">
-              {!paste && !notFound && !error && <Spinner role="status" text="Loading…" />}
+              {loading && <Spinner role="status" text="Loading…" />}
               {notFound && (
                 <p>
                   Paste not found or has expired.{' '}

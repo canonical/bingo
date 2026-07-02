@@ -208,7 +208,7 @@ Referencing `dpaste`[^1] as the conceptual baseline:
 - **Language registry:** `GET /api/v1/languages` serves available syntax languages,
   validated on create.
 - **Background expiry sweep:** `DELETE FROM pastes WHERE expires_at < now();` plus
-  lazy expiry on `GET` (expired → `404` + delete).
+  lazy expiry on `GET` (expired → `204` + delete).
 - **Rate limiting:** Per-IP token bucket at the API gateway level (out of app scope
   for MVP; app returns `429` errors from the gateway).
 
@@ -317,7 +317,7 @@ valid session.
 | 400 | `invalid_request`, `missing_content`, `invalid_expires_in`, `unknown_language` |
 | 401 | `unauthenticated` |
 | 403 | `forbidden` (not the paste owner) |
-| 404 | `paste_not_found` (also expired) |
+| 204 | (no body — paste absent or expired) |
 | 413 | `content_too_large` |
 | 429 | `rate_limited` |
 | 500 | `internal_error` |

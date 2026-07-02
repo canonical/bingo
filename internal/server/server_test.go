@@ -282,8 +282,8 @@ func TestGetPaste_notFound(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusNotFound {
-		t.Errorf("status = %d, want 404", resp.StatusCode)
+	if resp.StatusCode != http.StatusNoContent {
+		t.Errorf("status = %d, want 204", resp.StatusCode)
 	}
 }
 
@@ -312,8 +312,8 @@ func TestGetPaste_expiredLazy(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if resp.StatusCode != http.StatusNotFound {
-		t.Errorf("lazy expiry: status = %d, want 404", resp.StatusCode)
+	if resp.StatusCode != http.StatusNoContent {
+		t.Errorf("lazy expiry: status = %d, want 204", resp.StatusCode)
 	}
 	if deletedKey != "oldkey" {
 		t.Errorf("lazy expiry: Delete not called with correct key, got %q", deletedKey)

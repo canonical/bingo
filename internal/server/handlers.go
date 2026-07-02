@@ -174,24 +174,24 @@ func (s *Server) handleGetPasteRaw(w http.ResponseWriter, r *http.Request) {
 	_, _ = w.Write([]byte(p.Content))
 }
 
-// getPasteOrError fetches a paste, applies lazy expiry, and writes an error
-// response when the paste is missing or expired. Returns non-nil err when
-// the caller should stop processing.
+// getPasteOrError fetches a paste, applies lazy expiry, and writes a 204 No
+// Content response when the paste is missing or expired. Returns non-nil err
+// when the caller should stop processing.
 func (s *Server) getPasteOrError(w http.ResponseWriter, ctx context.Context, k string) (*paste.Paste, error) {
 	p, err := s.repo.GetByKey(ctx, k)
 	if err != nil {
 		if errors.Is(err, paste.ErrNotFound) {
-			writeError(w, http.StatusNotFound, "paste_not_found", "Paste not found.")
+			w.WriteHeader(http.StatusNoContent)
 			return nil, err
 		}
 		slog.Error("get paste", "err", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Internal server error.")
 		return nil, err
 	}
-	// Lazy expiry: delete and return 404 if the paste has expired.
+	// Lazy expiry: delete and return 204 if the paste has expired.
 	if time.Now().After(p.ExpiresAt) {
 		_ = s.repo.Delete(ctx, k)
-		writeError(w, http.StatusNotFound, "paste_not_found", "Paste not found.")
+		w.WriteHeader(http.StatusNoContent)
 		return nil, errors.New("expired")
 	}
 	return p, nil

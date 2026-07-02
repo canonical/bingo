@@ -58,8 +58,9 @@ export async function getLanguages(): Promise<string[]> {
   return body.languages
 }
 
-export async function getPaste(key: string): Promise<PasteResponse> {
+export async function getPaste(key: string): Promise<PasteResponse | null> {
   const data = await request<unknown>(`/api/v1/pastes/${encodeURIComponent(key)}`, { method: 'GET' })
+  if (data === undefined) return null  // 204 No Content — paste absent or expired
   if (!isPasteResponse(data)) throw new ApiRequestError(200, 'invalid_response', 'Unexpected response shape from GET /pastes/:key')
   return data
 }
