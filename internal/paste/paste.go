@@ -88,7 +88,7 @@ func (e ExpiresIn) Duration() time.Duration {
 // validLanguages is the set of accepted language identifiers.
 // Keys match react-syntax-highlighter (Prism) language names used by the frontend.
 var validLanguages = map[string]struct{}{
-	"plaintext":               {},
+	"plaintext":                {},
 	"abap":                     {},
 	"abnf":                     {},
 	"actionscript":             {},
@@ -387,12 +387,15 @@ func IsValidLanguage(lang string) bool {
 	return ok
 }
 
-// AllLanguages returns a sorted slice of all supported language identifiers.
+// AllLanguages returns a slice of all supported language identifiers, with
+// "plaintext" first followed by the remaining languages in alphabetical order.
 func AllLanguages() []string {
 	langs := make([]string, 0, len(validLanguages))
 	for l := range validLanguages {
-		langs = append(langs, l)
+		if l != "plaintext" {
+			langs = append(langs, l)
+		}
 	}
 	sort.Strings(langs)
-	return langs
+	return append([]string{"plaintext"}, langs...)
 }
