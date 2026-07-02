@@ -5,7 +5,7 @@ import MyPastesPage from './pages/MyPastesPage'
 
 export default function App() {
   return (
-    <div className="l-application" role="presentation">
+    <div role="presentation">
       <Routes>
         <Route path="/" element={<HomePage />} />
         <Route path="/my-pastes" element={<MyPastesPage />} />
