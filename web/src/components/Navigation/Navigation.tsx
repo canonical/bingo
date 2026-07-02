@@ -27,9 +27,10 @@ export default function AppNavigation({ isAuthenticated, userEmail }: Props) {
 
   return (
     <Navigation
+      fullWidth
       theme={Theme.DARK}
       logo={{
-        src: '/favicon.svg',
+        src: 'https://assets.ubuntu.com/v1/82818827-CoF_white.svg',
         title: 'Bingo',
         url: '/',
       }}
