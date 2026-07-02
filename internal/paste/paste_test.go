@@ -46,14 +46,14 @@ func TestIsValidLanguage(t *testing.T) {
 	if !paste.IsValidLanguage("python") {
 		t.Error("IsValidLanguage(\"python\") = false, want true")
 	}
+	if !paste.IsValidLanguage("plaintext") {
+		t.Error("IsValidLanguage(\"plaintext\") = false, want true")
+	}
 	if !paste.IsValidLanguage("cobol") {
 		t.Error("IsValidLanguage(\"cobol\") = false, want true")
 	}
-	if !paste.IsValidLanguage("typescript") {
-		t.Error("IsValidLanguage(\"typescript\") = false, want true")
-	}
-	if paste.IsValidLanguage("plaintext") {
-		t.Error("IsValidLanguage(\"plaintext\") = true, want false")
+	if paste.IsValidLanguage("notareallanguage") {
+		t.Error("IsValidLanguage(\"notareallanguage\") = true, want false")
 	}
 	if paste.IsValidLanguage("") {
 		t.Error("IsValidLanguage(\"\") = true, want false")
@@ -67,12 +67,12 @@ func TestAllLanguages_notEmpty(t *testing.T) {
 	}
 	found := false
 	for _, l := range langs {
-		if l == "go" {
+		if l == "plaintext" {
 			found = true
 			break
 		}
 	}
 	if !found {
-		t.Error("AllLanguages() does not include \"go\"")
+		t.Error("AllLanguages() does not include \"plaintext\"")
 	}
 }

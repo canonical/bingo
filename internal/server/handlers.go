@@ -92,7 +92,7 @@ func (s *Server) handleCreatePaste(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	if req.Language == "" {
-		req.Language = "bash"
+		req.Language = "plaintext"
 	}
 	if !paste.IsValidLanguage(req.Language) {
 		writeError(w, http.StatusBadRequest, "unknown_language",

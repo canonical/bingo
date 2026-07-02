@@ -19,7 +19,7 @@ export default function NewPasteForm({ onCreated }: Props) {
   const [languages, setLanguages] = useState<string[]>([])
   const [content, setContent] = useState('')
   const [title, setTitle] = useState('')
-  const [language, setLanguage] = useState('bash')
+  const [language, setLanguage] = useState('plaintext')
   const [expiresIn, setExpiresIn] = useState<CreatePasteParams['expires_in']>('3mo')
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -28,9 +28,9 @@ export default function NewPasteForm({ onCreated }: Props) {
     getLanguages()
       .then((langs) => {
         setLanguages(langs)
-        if (langs.length > 0 && !langs.includes('bash')) setLanguage(langs[0])
+        if (langs.length > 0 && !langs.includes('plaintext')) setLanguage(langs[0])
       })
-      .catch(() => setLanguages(['bash']))
+      .catch(() => setLanguages(['plaintext']))
   }, [])
 
   async function handleSubmit(e: React.FormEvent) {

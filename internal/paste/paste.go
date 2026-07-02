@@ -88,6 +88,7 @@ func (e ExpiresIn) Duration() time.Duration {
 // validLanguages is the set of accepted language identifiers.
 // Keys match react-syntax-highlighter (Prism) language names used by the frontend.
 var validLanguages = map[string]struct{}{
+	"plaintext":               {},
 	"abap":                     {},
 	"abnf":                     {},
 	"actionscript":             {},

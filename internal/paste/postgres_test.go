@@ -70,8 +70,8 @@ func TestPostgresRepository_Create(t *testing.T) {
 		t.Fatalf("Create() error = %v", err)
 	}
 
-	if len(p.Key) < 4 {
-		t.Errorf("Key length = %d, want >= 4", len(p.Key))
+	if len(p.Key) < 10 {
+		t.Errorf("Key length = %d, want >= 10", len(p.Key))
 	}
 	if p.Content != params.Content {
 		t.Errorf("Content = %q, want %q", p.Content, params.Content)
