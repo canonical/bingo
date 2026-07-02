@@ -10,7 +10,7 @@ CREATE TABLE IF NOT EXISTS pastes (
     owner_id   BIGINT,
 
     CONSTRAINT size_positive         CHECK (size_bytes >= 1),
-    CONSTRAINT key_length            CHECK (char_length(key) BETWEEN 4 AND 32),
+    CONSTRAINT key_length            CHECK (char_length(key) BETWEEN 10 AND 32),
     CONSTRAINT expiry_after_creation CHECK (expires_at > created_at)
 );
 
