@@ -122,21 +122,20 @@ func TestDeletePaste_authEnabled_missingCSRF_403(t *testing.T) {
 	}
 }
 
-func TestCreatePaste_authEnabled_unauthenticated_noCRSF_201(t *testing.T) {
+func TestCreatePaste_authEnabled_unauthenticated_401(t *testing.T) {
 	s := newCSRFTestServer(t, &stubRepoWithCreate{})
 
 	body := `{"content":"hello","language":"go","expires_in":"1d"}`
 	r := httptest.NewRequest(http.MethodPost, "/api/v1/pastes", strings.NewReader(body))
 	r.Header.Set("Content-Type", "application/json")
-	
-	// Don't inject a session — request is unauthenticated
-	// No X-CSRF-Token header either, but CSRF check should skip for unauthenticated
-	// and request should proceed to handleCreatePaste, which should succeed with 201
+
+	// Don't inject a session — request is unauthenticated.
+	// When auth is enabled, unauthenticated requests must be rejected with 401.
 	w := httptest.NewRecorder()
 
 	s.handleCreatePaste(w, r)
 
-	if w.Code != http.StatusCreated {
-		t.Errorf("unauthenticated request to createPaste: status = %d, want 201", w.Code)
+	if w.Code != http.StatusUnauthorized {
+		t.Errorf("unauthenticated request to createPaste (auth enabled): status = %d, want 401", w.Code)
 	}
 }

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"bingo/internal/auth"
 	"bingo/internal/config"
@@ -44,7 +45,7 @@ func New(cfg *config.Config, db *sql.DB, repo paste.Repository, authProvider *au
 	if cfg.WebDir != "" {
 		s.serveStaticFiles(cfg.WebDir)
 	}
-	s.handler = s.securityHeadersMiddleware(s.corsMiddleware(s.auth.Middleware(s.mux)))
+	s.handler = s.securityHeadersMiddleware(s.corsMiddleware(s.auth.Middleware(s.requireAuthMiddleware(s.mux))))
 	return s
 }
 
@@ -87,6 +88,35 @@ func (s *Server) securityHeadersMiddleware(next http.Handler) http.Handler {
 	})
 }
 
+// requireAuthMiddleware gates the entire application behind authentication when auth
+// is enabled. Exempt paths (auth flow and healthz) are always allowed through.
+// For API paths, unauthenticated requests receive a 401 JSON response.
+// For browser paths, unauthenticated requests are redirected to /auth/login.
+// When auth is disabled (s.auth == nil), all requests pass through unchanged.
+func (s *Server) requireAuthMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if s.auth == nil {
+			next.ServeHTTP(w, r)
+			return
+		}
+		// Auth flow endpoints, health check, and me endpoint are always accessible.
+		p := r.URL.Path
+		if p == "/auth/login" || p == "/auth/callback" || p == "/auth/logout" || p == "/api/v1/healthz" || p == "/api/v1/me" {
+			next.ServeHTTP(w, r)
+			return
+		}
+		if _, ok := auth.FromContext(r.Context()); !ok {
+			if strings.HasPrefix(p, "/api/") {
+				writeError(w, http.StatusUnauthorized, "unauthenticated", "Login required.")
+				return
+			}
+			http.Redirect(w, r, "/auth/login", http.StatusFound)
+			return
+		}
+		next.ServeHTTP(w, r)
+	})
+}
+
 // registerRoutes wires all API and auth endpoints.
 func (s *Server) registerRoutes() {
 	// Auth endpoints
@@ -96,6 +126,7 @@ func (s *Server) registerRoutes() {
 
 	// API endpoints
 	s.mux.HandleFunc("GET /api/v1/healthz", s.handleHealthz)
+	s.mux.HandleFunc("GET /api/v1/me", s.handleMe)
 	s.mux.HandleFunc("POST /api/v1/pastes", s.handleCreatePaste)
 	s.mux.HandleFunc("GET /api/v1/pastes", s.handleListMyPastes)
 	s.mux.HandleFunc("GET /api/v1/pastes/{key}", s.handleGetPaste)

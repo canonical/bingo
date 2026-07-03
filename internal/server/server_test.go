@@ -624,3 +624,70 @@ func TestSecurityHeaders(t *testing.T) {
 	assert.Contains(t, csp, "default-src 'self'")
 	assert.NotContains(t, csp, "unsafe-eval")
 }
+
+// TestRequireAuthMiddleware_authEnabled verifies that when auth is enabled,
+// unauthenticated API requests return 401 and unauthenticated browser requests
+// are redirected to /auth/login. Auth flow and healthz endpoints are exempt.
+func TestRequireAuthMiddleware_authEnabled_apiReturns401(t *testing.T) {
+	ts := newTestServerWithAuth(t, new(auth.Provider))
+
+	resp, err := http.Get(ts.URL + "/api/v1/pastes/somekey")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
+}
+
+func TestRequireAuthMiddleware_authEnabled_browserRedirectsToLogin(t *testing.T) {
+	ts := newTestServerWithAuth(t, new(auth.Provider))
+
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	resp, err := client.Get(ts.URL + "/")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusFound, resp.StatusCode)
+	assert.Equal(t, "/auth/login", resp.Header.Get("Location"))
+}
+
+func TestRequireAuthMiddleware_authEnabled_healthzExempt(t *testing.T) {
+	ts := newTestServerWithAuth(t, new(auth.Provider))
+
+	resp, err := http.Get(ts.URL + "/api/v1/healthz")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+func TestRequireAuthMiddleware_authEnabled_loginExempt(t *testing.T) {
+	ts := newTestServerWithAuth(t, new(auth.Provider))
+
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	// /auth/login with a real Provider will panic on AuthCodeURL (zero-value codec),
+	// but the important thing is that it is NOT rejected by requireAuthMiddleware.
+	// We just verify the response is not 401.
+	resp, err := client.Get(ts.URL + "/auth/login")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.NotEqual(t, http.StatusUnauthorized, resp.StatusCode)
+}
+
+func TestRequireAuthMiddleware_authDisabled_allowsAll(t *testing.T) {
+	ts := newTestServer(t, defaultRepo()) // nil auth
+
+	resp, err := http.Get(ts.URL + "/api/v1/languages")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}

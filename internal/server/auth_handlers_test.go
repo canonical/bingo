@@ -17,7 +17,11 @@ func newTestServerWithAuth(t *testing.T, authProvider *auth.Provider) *httptest.
 		BaseURL:           "https://example.com",
 		MaxPasteSizeBytes: 5 * 1024 * 1024,
 	}
-	srv := server.New(cfg, nil, defaultRepo(), authProvider, nil)
+	var userRepo *auth.UserRepository
+	if authProvider != nil {
+		userRepo = new(auth.UserRepository) // zero-value; DB calls would fail but middleware tests don't reach them
+	}
+	srv := server.New(cfg, nil, defaultRepo(), authProvider, userRepo)
 	ts := httptest.NewServer(srv)
 	t.Cleanup(ts.Close)
 	return ts

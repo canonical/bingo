@@ -50,9 +50,6 @@ func (s *Server) requireCSRF(w http.ResponseWriter, r *http.Request) bool {
 	if s.auth == nil {
 		return true // CSRF only matters when auth is enabled
 	}
-	if _, authenticated := auth.FromContext(r.Context()); !authenticated {
-		return true // anonymous requests don't carry CSRF tokens
-	}
 	if !auth.ValidateCSRF(r) {
 		writeError(w, http.StatusForbidden, "csrf_invalid", "CSRF token missing or invalid")
 		return false
@@ -60,7 +57,24 @@ func (s *Server) requireCSRF(w http.ResponseWriter, r *http.Request) bool {
 	return true
 }
 
+// requireAuth enforces mandatory authentication when auth is enabled.
+// Returns true if the request may proceed; writes a 401 and returns false otherwise.
+// When auth is disabled (s.auth == nil), all requests are allowed through as anonymous.
+func (s *Server) requireAuth(w http.ResponseWriter, r *http.Request) bool {
+	if s.auth == nil {
+		return true // auth disabled: all pastes are anonymous
+	}
+	if _, ok := auth.FromContext(r.Context()); !ok {
+		writeError(w, http.StatusUnauthorized, "unauthenticated", "Login required.")
+		return false
+	}
+	return true
+}
+
 func (s *Server) handleCreatePaste(w http.ResponseWriter, r *http.Request) {
+	if !s.requireAuth(w, r) {
+		return
+	}
 	if !s.requireCSRF(w, r) {
 		return
 	}
@@ -241,6 +255,29 @@ func (s *Server) handleDeletePaste(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) handleListLanguages(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string][]string{"languages": paste.AllLanguages()})
+}
+
+// meResponse is returned by GET /api/v1/me.
+type meResponse struct {
+	AuthEnabled   bool   `json:"auth_enabled"`
+	Authenticated bool   `json:"authenticated"`
+	Email         string `json:"email,omitempty"`
+}
+
+// handleMe reports the current session state.
+// Always accessible (exempt from requireAuthMiddleware) so the frontend can
+// determine whether authentication is required without being redirected.
+// - Auth disabled: {"auth_enabled":false,"authenticated":false}
+// - Auth enabled, unauthenticated: {"auth_enabled":true,"authenticated":false}
+// - Auth enabled, authenticated: {"auth_enabled":true,"authenticated":true,"email":"..."}
+func (s *Server) handleMe(w http.ResponseWriter, r *http.Request) {
+	authEnabled := s.auth != nil
+	sess, ok := auth.FromContext(r.Context())
+	if !ok {
+		writeJSON(w, http.StatusOK, meResponse{AuthEnabled: authEnabled, Authenticated: false})
+		return
+	}
+	writeJSON(w, http.StatusOK, meResponse{AuthEnabled: authEnabled, Authenticated: true, Email: sess.Email})
 }
 
 // pasteListItem is a summary view of a paste used in list responses (no content field).

@@ -145,8 +145,10 @@ components.
 
 Authentication uses **OIDC** (OpenID Connect) connected to the new Canonical Identity
 Platform (CIdP). **OIDC must be supported, but it is not required to use the
-application.** Anonymous pastes are allowed, and operators must be able to deploy
-bingo without configuring an identity provider.
+application.** Operators must be able to deploy bingo without configuring an identity
+provider. Authentication is all-or-nothing: when OIDC is configured, all users must
+authenticate — there is no anonymous paste option. When OIDC is not configured,
+authentication is disabled and every paste is created anonymously.
 
 ### Purpose
 
@@ -156,9 +158,9 @@ identity (`owner_id` is populated). Authenticated users gain:
 - A "my pastes" view listing their own pastes.
 - Ownership and attribution of the pastes they create.
 
-When OIDC is not configured, or a user chooses not to log in, pastes are created
-anonymously (`owner_id` is `NULL`). Anonymous pastes are not listed under any
-"my pastes" view and expose no owner-only actions.
+When OIDC is not configured, all pastes are created anonymously (`owner_id` is
+`NULL`). Anonymous pastes are not listed under any "my pastes" view and expose no
+owner-only actions.
 
 ### Security Considerations
 
@@ -171,9 +173,10 @@ anonymously (`owner_id` is `NULL`). Anonymous pastes are not listed under any
 - **CORS:** Restrict allowed origins to the production domain(s). Do not use wildcard
   origins in production.
 - **Authorization:** Only the owner of an owned paste can delete it. Verify ownership
-  server-side on every privileged action. When authentication is enabled, owner-only
-  actions require a valid session; requests for those actions without one are rejected
-  with `401`. Anonymous pastes have no owner and expose no owner-only actions.
+  server-side on every privileged action. When authentication is enabled, the entire
+  app is gated: unauthenticated API requests are rejected with `401`, browser requests
+  are redirected to `/auth/login`. Auth flow endpoints and healthz are exempt. Anonymous
+  pastes (created when auth is disabled) have no owner and expose no owner-only actions.
 
 ### Implementation
 
@@ -203,7 +206,7 @@ Referencing `dpaste`[^1] as the conceptual baseline:
   `1mo`, `3mo` (default), `1y` (max). No keep-forever option.
 - **Deletion:** Only the owner of an owned paste (the authenticated user who created
   it) can delete it. Ownership is enforced server-side via `owner_id`. Anonymous
-  pastes have no owner and are removed only by expiry.
+  pastes (created when auth is disabled) have no owner and are removed only by expiry.
 - **Raw endpoint:** `GET /api/v1/pastes/{key}/raw` returns `text/plain` (curl-friendly).
 - **Language registry:** `GET /api/v1/languages` serves available syntax languages,
   validated on create.
@@ -265,9 +268,12 @@ CREATE INDEX pastes_owner_id_idx   ON pastes (owner_id);
 ## 7. JSON API (`/api/v1`)
 
 All requests/responses are `application/json` (except `/raw`). Timestamps are RFC 3339
-UTC. Endpoints are accessible anonymously by default; when OIDC is enabled, the
-"my pastes" listing and owner-only actions (such as deleting an owned paste) require a
-valid session.
+UTC. When OIDC is disabled, all endpoints are accessible without authentication and
+every paste is anonymous. When OIDC is enabled, the entire application is gated behind
+login: unauthenticated API requests receive `401`, and unauthenticated browser requests
+are redirected to `/auth/login`. The auth flow endpoints (`/auth/login`,
+`/auth/callback`, `/auth/logout`) and the health check (`/api/v1/healthz`) are always
+accessible.
 
 ### Endpoints
 
@@ -334,8 +340,6 @@ is critical at every layer:
 - **Input validation at the boundary:** reject content larger than the configured
   `MAX_PASTE_SIZE_BYTES` (default 5 MiB), validate `language` against the registry,
   enforce `expires_in` enum, sanitize `title` length.
-- **Content scanning:** check submitted content for known exploit patterns (embedded
-  `<script>` tags, encoded payloads) before storage. Log and reject suspicious input.
 - **Output encoding:** JSON responses must properly escape all user-supplied strings.
   The `encoding/json` package handles this by default — never use raw string
   concatenation for JSON construction.
@@ -383,27 +387,43 @@ decommissioned. Users migrate themselves to the new service.
 
 ## 10. User Workflow
 
-The application is usable anonymously. When OIDC is enabled, users may optionally log
-in to associate pastes with their identity and access the "my pastes" view.
+### Authentication disabled (anonymous mode)
 
-1. **Login (optional)** — when OIDC is enabled, the user may authenticate via OIDC
-   (CIdP) to establish a session. Anonymous users skip this step.
+All pages are accessible without login. Every paste is created anonymously.
 
-2. **Default page** (`/`) is the "new paste" form.
+1. **Default page** (`/`) is the "new paste" form.
    - Fields: Title (optional), Syntax (from `/api/v1/languages`), Expiration, Content.
 
-3. **After creation**, redirect to `/{key}` showing the paste content.
+2. **After creation**, redirect to `/{key}` showing the paste content.
    - View page shows: creation date, expiry, syntax type, content with client-side
      syntax highlighting, "view raw" link, toggle wrap, copy to clipboard.
 
-4. **Direct navigation** to `/{key}` shows the view page.
-   - Expired / missing → `204 No Content` state (the request succeeded;
-     there is simply no paste to return).
+3. **Direct navigation** to `/{key}` shows the view page.
+   - Expired / missing → `204 No Content` state.
+
+4. **"New paste" link** visible when viewing an existing paste.
+
+### Authentication enabled (OIDC mode)
+
+On page load, the frontend calls `GET /api/v1/me`. If the user has no session, they
+are redirected to `/auth/login` before any application content is shown.
+
+1. **Login** — `/auth/login` redirects to the OIDC provider (CIdP). After successful
+   authentication, the provider redirects to `/auth/callback`, which sets the session
+   and CSRF cookies and redirects to `/`.
+
+2. **Default page** (`/`) is the "new paste" form (same fields as above).
+
+3. **After creation**, redirect to `/{key}` showing the paste content (same view).
+
+4. **Direct navigation** to `/{key}` shows the view page. Expired / missing → `204`.
 
 5. **"New paste" link** visible when viewing an existing paste.
 
-6. **"My pastes"** view lists the authenticated user's own pastes (available only when
-   logged in).
+6. **"My pastes"** view lists the authenticated user's own pastes.
+
+7. **Logout** — `GET /auth/logout` clears the session and CSRF cookies and redirects
+   to `/`, which immediately redirects back to `/auth/login`.
 
 ---
 
@@ -595,16 +615,16 @@ starts with a failing test.
 ### Phase 3: Authentication (OIDC)
 
 - Implement **optional** OIDC middleware in `internal/auth/`; when `OIDC_*` config is
-  absent, authentication is disabled and the app runs in anonymous mode.
+  absent, authentication is disabled and the app runs in anonymous-only mode.
 - Handle authorization code flow, token validation, session management.
-- Allow anonymous access; when authenticated, owner-only actions require a valid
-  session and reject missing ones with `401`.
-- Populate `owner_id` from the authenticated user when logged in; leave it `NULL` for
-  anonymous pastes.
+- When authentication is enabled, all paste creation and management endpoints require a
+  valid session; unauthenticated requests are rejected with `401`. When authentication
+  is disabled, all pastes are anonymous (`owner_id` is `NULL`) and no login is available.
+- Populate `owner_id` from the authenticated user when logged in.
 - Add "my pastes" API endpoint (`GET /api/v1/pastes?mine=true`), available only when
   authenticated.
 - Security: CSRF tokens, secure cookies, CORS configuration.
-- Write tests covering auth flow and authorization checks.
+- Write tests covering auth flow, mandatory-auth enforcement, and authorization checks.
 
 ### Phase 4: Frontend (React + Pragma)
 

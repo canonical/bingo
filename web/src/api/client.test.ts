@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
 import { createPaste, getPaste, deletePaste, getLanguages, getMyPastes, getCSRFToken } from './client'
-import { ApiRequestError, isCreatePasteResponse, isPasteResponse, isMyPastesResponse } from './types'
+import { isCreatePasteResponse, isPasteResponse, isMyPastesResponse } from './types'
 
 const mockFetch = vi.fn()
 beforeEach(() => { 
@@ -39,8 +39,8 @@ describe('getPaste', () => {
     }
     mockFetch.mockResolvedValue(jsonResponse(body))
     const paste = await getPaste('abc12')
-    expect(paste.key).toBe('abc12')
-    expect(paste.content).toBe('hello world')
+    expect(paste!.key).toBe('abc12')
+    expect(paste!.content).toBe('hello world')
   })
 
   it('returns null on 204 No Content (paste absent or expired)', async () => {

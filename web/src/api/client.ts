@@ -3,6 +3,7 @@ import {
   CreatePasteResponse,
   PasteResponse,
   MyPastesResponse,
+  MeResponse,
   ApiError,
   ApiRequestError,
   isCreatePasteResponse,
@@ -86,4 +87,12 @@ export async function getMyPastes(): Promise<MyPastesResponse> {
   const data = await request<unknown>('/api/v1/pastes?mine=true', { method: 'GET' })
   if (!isMyPastesResponse(data)) throw new ApiRequestError(200, 'invalid_response', 'Unexpected response shape from GET /pastes?mine=true')
   return data
+}
+
+export async function getMe(): Promise<MeResponse> {
+  const data = await request<unknown>('/api/v1/me', { method: 'GET' })
+  if (typeof data !== 'object' || data === null || typeof (data as Record<string, unknown>).authenticated !== 'boolean') {
+    throw new ApiRequestError(200, 'invalid_response', 'Unexpected response shape from GET /me')
+  }
+  return data as MeResponse
 }

@@ -42,6 +42,13 @@ export interface MyPastesResponse {
   count: number
 }
 
+/** GET /api/v1/me → 200 */
+export interface MeResponse {
+  auth_enabled: boolean
+  authenticated: boolean
+  email?: string
+}
+
 /** Generic error envelope */
 export interface ApiError {
   error: {
