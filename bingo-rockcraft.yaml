@@ -31,4 +31,4 @@ parts:
     # The go-framework extension places staged files under /app/ in the container.
     # WEB_DIR=/app/web/dist is set by the charm config option (see charmcraft.yaml).
     stage:
-      - go/web/dist
+      - app/web/dist

@@ -14,6 +14,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
+	_ "github.com/jackc/pgx/v5/stdlib" // registers "pgx" driver for healthz DB test
+
 	"bingo/internal/auth"
 	"bingo/internal/config"
 	"bingo/internal/paste"
@@ -690,4 +692,126 @@ func TestRequireAuthMiddleware_authDisabled_allowsAll(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusOK, resp.StatusCode)
+}
+
+// ─── handleMe ────────────────────────────────────────────────────────────────
+
+func TestHandleMe_authDisabled(t *testing.T) {
+	ts := newTestServer(t, defaultRepo()) // nil auth provider
+
+	resp, err := http.Get(ts.URL + "/api/v1/me")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var body struct {
+		AuthEnabled   bool   `json:"auth_enabled"`
+		Authenticated bool   `json:"authenticated"`
+		Email         string `json:"email"`
+	}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	assert.False(t, body.AuthEnabled)
+	assert.False(t, body.Authenticated)
+	assert.Empty(t, body.Email)
+}
+
+func TestHandleMe_authEnabled_unauthenticated(t *testing.T) {
+	ts := newTestServerWithAuth(t, new(auth.Provider))
+
+	resp, err := http.Get(ts.URL + "/api/v1/me")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var body struct {
+		AuthEnabled   bool `json:"auth_enabled"`
+		Authenticated bool `json:"authenticated"`
+	}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	assert.True(t, body.AuthEnabled)
+	assert.False(t, body.Authenticated)
+}
+
+func TestHandleMe_authEnabled_authenticated(t *testing.T) {
+	cfg := &config.Config{BaseURL: "https://example.com", MaxPasteSizeBytes: 5 * 1024 * 1024}
+	srv := server.New(cfg, nil, defaultRepo(), new(auth.Provider), new(auth.UserRepository))
+	wrapped := injectSession(srv, &auth.Session{UserID: 1, Sub: "sub|1", Email: "user@example.com"})
+	ts := httptest.NewServer(wrapped)
+	t.Cleanup(ts.Close)
+
+	resp, err := http.Get(ts.URL + "/api/v1/me")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var body struct {
+		AuthEnabled   bool   `json:"auth_enabled"`
+		Authenticated bool   `json:"authenticated"`
+		Email         string `json:"email"`
+	}
+	require.NoError(t, json.NewDecoder(resp.Body).Decode(&body))
+	assert.True(t, body.AuthEnabled)
+	assert.True(t, body.Authenticated)
+	assert.Equal(t, "user@example.com", body.Email)
+}
+
+// ─── corsMiddleware ───────────────────────────────────────────────────────────
+
+func TestCORSMiddleware_preflightReturns204(t *testing.T) {
+	ts := newTestServer(t, defaultRepo())
+
+	req, _ := http.NewRequest(http.MethodOptions, ts.URL+"/api/v1/pastes", nil)
+	req.Header.Set("Origin", "https://example.com")
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusNoContent, resp.StatusCode)
+}
+
+func TestCORSMiddleware_matchingOriginSetsHeaders(t *testing.T) {
+	ts := newTestServer(t, defaultRepo())
+
+	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/api/v1/healthz", nil)
+	req.Header.Set("Origin", "https://example.com") // matches cfg.BaseURL
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, "https://example.com", resp.Header.Get("Access-Control-Allow-Origin"))
+}
+
+func TestCORSMiddleware_mismatchedOriginNoHeader(t *testing.T) {
+	ts := newTestServer(t, defaultRepo())
+
+	req, _ := http.NewRequest(http.MethodGet, ts.URL+"/api/v1/healthz", nil)
+	req.Header.Set("Origin", "https://evil.example.com")
+	resp, err := http.DefaultClient.Do(req)
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Empty(t, resp.Header.Get("Access-Control-Allow-Origin"))
+}
+
+// ─── handleHealthz ────────────────────────────────────────────────────────────
+
+func TestHealthz_dbUnavailable_returns503(t *testing.T) {
+	// Use a real but closed *sql.DB so PingContext returns an error.
+	db, err := sql.Open("pgx", "postgres://invalid:invalid@localhost:1/nodb?sslmode=disable&connect_timeout=1")
+	require.NoError(t, err)
+	defer db.Close()
+
+	cfg := &config.Config{BaseURL: "https://example.com", MaxPasteSizeBytes: 5 * 1024 * 1024}
+	srv := server.New(cfg, db, defaultRepo(), nil, nil)
+	ts := httptest.NewServer(srv)
+	t.Cleanup(ts.Close)
+
+	resp, err := http.Get(ts.URL + "/api/v1/healthz")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
 }
