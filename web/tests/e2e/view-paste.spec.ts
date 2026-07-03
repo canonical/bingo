@@ -1,8 +1,9 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
+import type { Route } from '@playwright/test'
 
 test.describe('View paste', () => {
   test.beforeEach(async ({ page }) => {
-    await page.route('/api/v1/pastes/abc12', (route) =>
+    await page.route('/api/v1/pastes/abc12', (route: Route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -40,7 +41,7 @@ test.describe('View paste', () => {
   })
 
   test('shows not-found message for expired/missing paste', async ({ page }) => {
-    await page.route('/api/v1/pastes/nope', (route) =>
+    await page.route('/api/v1/pastes/nope', (route: Route) =>
       route.fulfill({
         status: 404,
         contentType: 'application/json',

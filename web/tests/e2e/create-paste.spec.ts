@@ -1,4 +1,5 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
+import type { Route } from '@playwright/test'
 
 test.describe('Create paste flow', () => {
   test.beforeEach(async ({ page }) => {
@@ -11,7 +12,7 @@ test.describe('Create paste flow', () => {
       })
     )
     // Mock POST /api/v1/pastes
-    await page.route('/api/v1/pastes', async (route) => {
+    await page.route('/api/v1/pastes', async (route: Route) => {
       if (route.request().method() === 'POST') {
         return route.fulfill({
           status: 201,

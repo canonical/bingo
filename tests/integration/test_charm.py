@@ -10,13 +10,10 @@ Usage (in spread environment):
     pytest tests/integration/ -v --model testing
 """
 
-import asyncio
 import logging
 import typing
 
 import pytest
-import pytest_asyncio
-from juju.application import Application
 from pytest_operator.plugin import OpsTest
 
 logger = logging.getLogger(__name__)
@@ -54,7 +51,7 @@ async def test_build_and_deploy(ops_test: OpsTest, app_image: str) -> None:
     charm_path = await ops_test.build_charm(".")
     assert ops_test.model is not None
 
-    app: Application = await ops_test.model.deploy(
+    await ops_test.model.deploy(
         str(charm_path),
         application_name="bingo",
         resources={"app-image": app_image},
@@ -129,11 +126,13 @@ async def test_paste_create_anonymous(ops_test: OpsTest) -> None:
 
     ip = await traefik_app.units[0].get_public_address()
     url = f"http://{ip}/bingo/api/v1/pastes"
-    payload = json.dumps({
-        "content": "hello from integration test",
-        "language": "plaintext",
-        "expires_in": "1d",
-    }).encode()
+    payload = json.dumps(
+        {
+            "content": "hello from integration test",
+            "language": "plaintext",
+            "expires_in": "1d",
+        }
+    ).encode()
     req = urllib.request.Request(
         url,
         data=payload,

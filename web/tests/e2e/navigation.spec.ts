@@ -1,8 +1,9 @@
-import { test, expect } from '@playwright/test'
+import { test, expect } from './fixtures'
+import type { Route } from '@playwright/test'
 
 test.describe('Navigation', () => {
   test.beforeEach(async ({ page }) => {
-    await page.route('/api/v1/languages', (route) =>
+    await page.route('/api/v1/languages', (route: Route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
@@ -22,7 +23,7 @@ test.describe('Navigation', () => {
   })
 
   test('New paste link on viewer navigates to home', async ({ page }) => {
-    await page.route('/api/v1/pastes/abc12', (route) =>
+    await page.route('/api/v1/pastes/abc12', (route: Route) =>
       route.fulfill({
         status: 200,
         contentType: 'application/json',
