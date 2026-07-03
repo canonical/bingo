@@ -5,7 +5,7 @@ version: 1
 
 rocks:
   - name: bingo
-    rockcraft-yaml: bingo-rockcraft.yaml
+    rockcraft-yaml: rockcraft.yaml
     platforms:
       - arch: amd64
 

@@ -62,7 +62,7 @@ requires:
 
 resources:
   app-image:
-    description: bingo OCI rock (built from bingo-rockcraft.yaml).
+    description: bingo OCI rock (built from rockcraft.yaml).
     type: oci-image
 
 config:

@@ -1,4 +1,4 @@
-# bingo-rockcraft.yaml — OCI rock for the bingo Go application.
+# rockcraft.yaml — OCI rock for the bingo Go application.
 # Built by: rockcraft pack
 # Reference: https://documentation.ubuntu.com/rockcraft/en/stable/reference/extensions/go-framework
 name: bingo
