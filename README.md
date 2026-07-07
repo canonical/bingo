@@ -16,7 +16,9 @@ Like any Juju charm, this charm supports one-line deployment, configuration, int
 ```bash
 juju add-model bingo
 juju deploy bingo --resource app-image=<oci-image>
+# Required for core app functionality (persistent storage)
 juju integrate bingo postgresql-k8s
+# Required for external/public HTTP ingress
 juju integrate bingo traefik-k8s
 ```
 
@@ -46,14 +48,18 @@ juju run bingo/0 rotate-secret-key
 
 ## Integrations
 
-| Endpoint | Interface | Purpose |
-|---|---|---|
-| `postgresql` | `postgresql_client` | Persistent paste storage |
-| `ingress` | `ingress` | External HTTP access via Traefik |
-| `logging` | `loki_push_api` | Log forwarding to Loki |
-| `metrics-endpoint` | `prometheus_scrape` | Metrics scraping |
-| `grafana-dashboard` | `grafana_dashboard` | Pre-built dashboards |
-| `tracing` | `tracing` | Distributed tracing (optional) |
+Required relations:
+* `postgresql` is required for core app functionality (persistent storage).
+* `ingress` is required only when exposing bingo externally (for public HTTP access via Traefik).
+
+| Endpoint | Interface | Required | Purpose |
+|---|---|---|---|
+| `postgresql` | `postgresql_client` | Yes | Persistent paste storage |
+| `ingress` | `ingress` | Required for external access | External HTTP access via Traefik |
+| `logging` | `loki_push_api` | No | Log forwarding to Loki |
+| `metrics-endpoint` | `prometheus_scrape` | No | Metrics scraping |
+| `grafana-dashboard` | `grafana_dashboard` | No | Pre-built dashboards |
+| `tracing` | `tracing` | No | Distributed tracing |
 
 ## Project and community
 
