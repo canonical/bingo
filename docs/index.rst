@@ -1,38 +1,36 @@
 .. meta::
-   :description: Discover the __charm_name__ charm, a Juju operator that deploys and manages __charm_name__.
+   :description: Discover the bingo charm, a Juju operator that deploys and manages bingo, a Go pastebin application.
 
 .. vale Canonical.007-Headings-sentence-case = NO
 
 .. _index:
 
-__charm_name__ operator
-========================
+bingo operator
+==============
 
 .. vale Canonical.007-Headings-sentence-case = YES
 
-.. TODO: A single sentence that says what the product is, succinctly and memorably.
-   Add a 1-2 sentence description of what the charm software does.
-
 A `Juju <https://juju.is/>`_ `charm <https://documentation.ubuntu.com/juju/3.6/reference/charm/>`_
-deploying and managing <Charm software> on <Kubernetes, VMs, or both>. 
-
-.. TODO: A paragraph of 2-5 short sentences, that describes what the product does
-   and what need the product meets.
+deploying and managing `bingo <https://github.com/canonical/bingo>`_ on Kubernetes.
+bingo is a 12-Factor Go pastebin application that replaces
+`paste.canonical.com <https://paste.canonical.com>`_.
 
 Like any Juju charm, this charm supports one-line deployment, configuration, integration,
-scaling, and more. 
-For __charm_name__, this includes:
+scaling, and more.
+For bingo, this includes:
 
-* list or summary of app-specific features
+* Paste creation and retrieval with configurable expiry
+* Optional OIDC authentication via the Canonical Identity Platform
+* Integration with PostgreSQL for persistent storage
+* Ingress support via Traefik
+* Observability integrations (Prometheus, Grafana, Loki)
 
-The __charm_name__ charm allows for deployment on many different Kubernetes platforms,
-from `MicroK8s <https://microk8s.io/>`_ to 
+The bingo charm allows for deployment on many different Kubernetes platforms,
+from `MicroK8s <https://microk8s.io/>`_ to
 `Charmed Kubernetes <https://ubuntu.com/kubernetes>`_ to public cloud Kubernetes offerings.
 
-.. TODO: Finally, a paragraph that describes whom the product is useful for.
-
-This charm will make operating <Charm software> simple and straightforward for DevOps or
-SRE teams through Juju's clean interface. 
+This charm will make operating bingo simple and straightforward for DevOps or
+SRE teams through Juju's clean interface.
 
 In this documentation
 ---------------------
@@ -87,8 +85,8 @@ How this documentation is organized
 
 This documentation uses the `Diátaxis documentation structure <https://diataxis.fr/>`_.
 
-- The :ref:`Tutorial <tutorial_index>` takes you step-by-step through a basic deployment of the <Charm software> charm.
-- :ref:`How-to guides <how_to_index>` assume you have basic familiarity with the <Charm software> charm. Learn more about setting up, using, maintaining, and contributing to this charm.
+- The :ref:`Tutorial <tutorial_index>` takes you step-by-step through a basic deployment of the bingo charm.
+- :ref:`How-to guides <how_to_index>` assume you have basic familiarity with the bingo charm. Learn more about setting up, using, maintaining, and contributing to this charm.
 - :ref:`Reference <reference_index>` provides a guide to actions, configurations, relations, and other technical details.
 - :ref:`Explanation <explanation_index>` includes topic overviews, background and context and detailed discussion.
 - :ref:`Release notes <release_notes_index>` holds all the release notes for the charm, including any system or upgrade requirements.
@@ -102,14 +100,12 @@ constructive feedback on our documentation.
 See :ref:`How to contribute <how_to_contribute>` for more information.
 
 If there's a particular area of documentation that you'd like to see that's missing, please 
-file a bug.
-
-.. TODO: Add link to GitHub issues page for "file a bug"
+`file a bug <https://github.com/canonical/bingo/issues>`_.
 
 Project and community
 ---------------------
 
-The __charm_name__ Operator is a member of the Ubuntu family. It's an open-source project that warmly welcomes community 
+The bingo Operator is a member of the Ubuntu family. It's an open-source project that warmly welcomes community 
 projects, contributions, suggestions, fixes, and constructive feedback.
 
 Governance and policies
@@ -129,7 +125,7 @@ Releases
 
 - :ref:`Release notes <release_notes_index>`
 
-Thinking about using the __charm_name__ Operator for your next project? 
+Thinking about using the bingo Operator for your next project? 
 `Get in touch <https://matrix.to/#/#charmhub-charmdev:ubuntu.com>`_!
 
 .. vale Canonical.013-Spell-out-numbers-below-10 = NO
