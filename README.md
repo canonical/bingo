@@ -1,8 +1,8 @@
-# Bingo
+# bingo
 
-A Juju charm deploying and managing Bingo on Kubernetes. Bingo is a 12-Factor Go + React pastebin application that replaces paste.canonical.com, providing paste creation, retrieval, expiry, and optional OIDC authentication via the Canonical Identity Platform.
+A Juju charm deploying and managing bingo on Kubernetes. bingo is a 12-Factor Go + React pastebin application that replaces paste.canonical.com, providing paste creation, retrieval, expiry, and optional OIDC authentication via the Canonical Identity Platform.
 
-Like any Juju charm, this charm supports one-line deployment, configuration, integration, scaling, and more. For Bingo, this includes:
+Like any Juju charm, this charm supports one-line deployment, configuration, integration, scaling, and more. For bingo, this includes:
 * Paste creation and retrieval with configurable expiry
 * Optional OIDC authentication via the Canonical Identity Platform
 * Integration with PostgreSQL for persistent storage

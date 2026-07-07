@@ -1,8 +1,6 @@
-<!-- Remember to update this file for your charm -- replace bingo with the appropriate name. -->
-
 # Contributing
 
-This document explains the processes and practices recommended for contributing enhancements to the bingo charm.
+This document explains the processes and practices recommended for contributing enhancements to the bingo project.
 
 ## Overview
 
@@ -86,7 +84,7 @@ we use the [Canonical contributor license agreement](https://assets.ubuntu.com/v
 
 #### Canonical contributor agreement
 
-Canonical welcomes contributions to the bingo charm. Please check out our
+Canonical welcomes contributions to the bingo project. Please check out our
 [contributor agreement](https://ubuntu.com/legal/contributors) if you're interested in contributing to the solution.
 
 The CLA sign-off is simple line at the
