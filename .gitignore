@@ -1,0 +1,35 @@
+# Git worktrees
+.worktrees/
+
+# Go
+/bin/
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+vendor/
+
+# Frontend
+web/node_modules/
+web/dist/
+web/.env.local
+
+# Environment
+.env
+.env.local
+dex-config.yaml
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*~
+/bingo
+lib/**/__pycache__/
+.coverage
+src/__pycache__/
+**/__pycache__/
+**/*.pyc
