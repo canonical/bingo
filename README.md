@@ -13,12 +13,13 @@ Like any Juju charm, this charm supports one-line deployment, configuration, int
 
 ### Deploy
 
+bingo requires a database for persistent storage, and it supports an ingress relation for public HTTP access. Deploy bingo and integrate it with the [PostgreSQL](https://charmhub.io/postgresql-k8s) and [Traefik](https://charmhub.io/traefik-k8s) charms:
+
+
 ```bash
 juju add-model bingo
 juju deploy bingo --resource app-image=<oci-image>
-# Required for core app functionality (persistent storage)
 juju integrate bingo postgresql-k8s
-# Required for external/public HTTP ingress
 juju integrate bingo traefik-k8s
 ```
 

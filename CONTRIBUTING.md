@@ -177,7 +177,7 @@ juju add-model bingo-dev
 # Enable DEBUG logging
 juju model-config logging-config="<root>=INFO;unit=DEBUG"
 # Deploy the charm (assuming you're on amd64)
-juju deploy ./bingo_ubuntu-24.04-amd64.charm \
+juju deploy ./bingo_amd64.charm \
   --resource app-image=localhost:32000/bingo:latest
 ```
 
