@@ -47,7 +47,7 @@ func Load() (*Config, error) {
 
 	cfg := &Config{
 		Port:              envOrDefault("PORT", "8080"),
-		DatabaseURL:       os.Getenv("DATABASE_URL"),
+		DatabaseURL:       envOrDefault("POSTGRESQL_DB_CONNECT_STRING", os.Getenv("DATABASE_URL")),
 		MaxPasteSizeBytes: maxSize,
 		BaseURL:           os.Getenv("BASE_URL"),
 		LogLevel:          envOrDefault("LOG_LEVEL", "info"),
