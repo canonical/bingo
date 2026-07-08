@@ -53,7 +53,6 @@ requires:
     interface: loki_push_api
   postgresql:
     interface: postgresql_client
-    optional: True
     limit: 1
   tracing:
     interface: tracing
