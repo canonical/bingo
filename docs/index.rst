@@ -12,7 +12,7 @@ bingo operator
 
 A `Juju <https://juju.is/>`_ `charm <https://documentation.ubuntu.com/juju/3.6/reference/charm/>`_
 deploying and managing `bingo <https://github.com/canonical/bingo>`_ on Kubernetes.
-bingo is a 12-Factor Go pastebin application that replaces
+bingo is a Go pastebin application that replaces
 `paste.canonical.com <https://paste.canonical.com>`_.
 
 Like any Juju charm, this charm supports one-line deployment, configuration, integration,
@@ -29,7 +29,7 @@ The bingo charm allows for deployment on many different Kubernetes platforms,
 from `MicroK8s <https://microk8s.io/>`_ to
 `Charmed Kubernetes <https://ubuntu.com/kubernetes>`_ to public cloud Kubernetes offerings.
 
-This charm will make operating bingo simple and straightforward for DevOps or
+This charm will make operating bingo straightforward for DevOps or
 SRE teams through Juju's clean interface.
 
 In this documentation
