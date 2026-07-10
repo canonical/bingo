@@ -11,7 +11,7 @@ rocks:
 
 charms:
   - name: bingo
-    charmcraft-yaml: charmcraft.yaml
+    charmcraft-yaml: charm/charmcraft.yaml
     channel: latest/edge
     resources:
       app-image:
