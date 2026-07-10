@@ -27,6 +27,14 @@ parts:
       bin/bingo: usr/local/bin/bingo
 
   go-framework/assets:
+    build-snaps:
+      - node/20/stable
+    override-build: |
+      craftctl default
+      # Build the Vite frontend for production.
+      cd ${CRAFT_PART_INSTALL}/web
+      npm install
+      npm run build
     # Stage the Vite production build as static assets.
     # The go-framework extension places staged files under /app/ in the container.
     # WEB_DIR=/app/web/dist is set by the charm config option (see charmcraft.yaml).
