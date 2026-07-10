@@ -3,12 +3,6 @@
 
 """Charm unit tests using the ops Scenario framework (ops.testing)."""
 
-import sys
-import os
-
-# Ensure src/ is on the path so 'from charm import BingoCharm' works.
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), "../../src"))
-
 import pytest
 from ops import testing
 from charm import BingoCharm

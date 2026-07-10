@@ -1,5 +1,0 @@
-pytest
-pytest-operator>=0.36
-juju>=3.5.0,<4.0
-ops>=3.7.0,<4.0
-paas-charm
