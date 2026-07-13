@@ -74,6 +74,35 @@ describe('PasteViewer', () => {
     expect(writeText).toHaveBeenCalledWith(basePaste.content)
   })
 
+  it('shows "Copied!" feedback after a successful copy', async () => {
+    const user = userEvent.setup()
+    const writeText = vi.fn().mockResolvedValue(undefined)
+    Object.defineProperty(navigator, 'clipboard', { value: { writeText }, configurable: true })
+    render(<PasteViewer paste={basePaste} />)
+    await user.click(screen.getByRole('button', { name: /copy to clipboard/i }))
+    expect(await screen.findByText(/copied!/i)).toBeInTheDocument()
+  })
+
+  it('falls back to document.execCommand when the Clipboard API is unavailable (insecure context)', async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true })
+    const execCommand = vi.fn().mockReturnValue(true)
+    document.execCommand = execCommand
+    render(<PasteViewer paste={basePaste} />)
+    await user.click(screen.getByRole('button', { name: /copy to clipboard/i }))
+    expect(execCommand).toHaveBeenCalledWith('copy')
+    expect(await screen.findByText(/copied!/i)).toBeInTheDocument()
+  })
+
+  it('shows "Copy failed" feedback when both the Clipboard API and execCommand fallback fail', async () => {
+    const user = userEvent.setup()
+    Object.defineProperty(navigator, 'clipboard', { value: undefined, configurable: true })
+    document.execCommand = vi.fn().mockReturnValue(false)
+    render(<PasteViewer paste={basePaste} />)
+    await user.click(screen.getByRole('button', { name: /copy to clipboard/i }))
+    expect(await screen.findByText(/copy failed/i)).toBeInTheDocument()
+  })
+
   it('sanitizes content before rendering (null byte stripped)', () => {
     render(<PasteViewer paste={{ ...basePaste, content: 'hel\x00lo' }} />)
     // content is sanitized — raw null byte does not appear

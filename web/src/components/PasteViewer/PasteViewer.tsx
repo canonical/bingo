@@ -18,10 +18,51 @@ function formatDate(iso: string): string {
   }
 }
 
+// legacyCopy copies text via a hidden textarea + document.execCommand, for
+// browsers/contexts where the async Clipboard API is unavailable (e.g. plain
+// HTTP served from a non-localhost host, which is not a "secure context").
+function legacyCopy(text: string): boolean {
+  const textarea = document.createElement('textarea')
+  textarea.value = text
+  textarea.style.position = 'fixed'
+  textarea.style.opacity = '0'
+  document.body.appendChild(textarea)
+  textarea.focus()
+  textarea.select()
+  let success: boolean
+  try {
+    success = document.execCommand('copy')
+  } catch {
+    success = false
+  }
+  document.body.removeChild(textarea)
+  return success
+}
+
 export default function PasteViewer({ paste, onDelete }: Props) {
   const [wrapLines, setWrapLines] = useState(false)
+  const [copyStatus, setCopyStatus] = useState<'idle' | 'copied' | 'error'>('idle')
   const content = sanitizeContent(paste.content)
   const title = sanitizeTitle(paste.title)
+
+  async function handleCopy() {
+    let success = false
+    try {
+      if (navigator.clipboard?.writeText) {
+        await navigator.clipboard.writeText(content)
+        success = true
+      }
+    } catch {
+      success = false
+    }
+    if (!success) {
+      // Clipboard API unavailable (e.g. plain HTTP served from a non-localhost
+      // host, which is not a "secure context") or it failed — fall back.
+      success = legacyCopy(content)
+    }
+    setCopyStatus(success ? 'copied' : 'error')
+    setTimeout(() => setCopyStatus('idle'), 2000)
+  }
 
   return (
     <article aria-label="Paste viewer">
@@ -88,9 +129,10 @@ export default function PasteViewer({ paste, onDelete }: Props) {
                appearance="base"
                small
                aria-label="Copy to clipboard"
-               onClick={() => navigator.clipboard.writeText(content)}
+               aria-live="polite"
+               onClick={handleCopy}
              >
-               Copy
+               {copyStatus === 'copied' ? 'Copied!' : copyStatus === 'error' ? 'Copy failed' : 'Copy'}
              </Button>
            </li>
            {onDelete && (
