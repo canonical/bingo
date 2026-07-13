@@ -35,13 +35,19 @@ config:
       type: string
       description: |
         Public base URL for generated paste links, e.g. https://paste.canonical.com.
-        Injected as BASE_URL.
+        Injected as APP_BASE_URL.
       default: ""
     max-paste-size-bytes:
       type: int
-      description: Maximum paste content size in bytes. Injected as MAX_PASTE_SIZE_BYTES.
+      description: Maximum paste content size in bytes. Injected as APP_MAX_PASTE_SIZE_BYTES.
       default: 5242880
     log-level:
       type: string
-      description: "Logging level: debug|info|warn|error. Injected as LOG_LEVEL."
+      description: "Logging level: debug|info|warn|error. Injected as APP_LOG_LEVEL."
       default: info
+    web-dir:
+      type: string
+      description: |
+        Path to the built frontend assets served as a SPA. Injected as
+        APP_WEB_DIR. Empty disables static file serving.
+      default: /app/web/dist

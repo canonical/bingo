@@ -40,7 +40,9 @@ func (c *Config) AuthEnabled() bool {
 // Load reads configuration from the environment, applying defaults where defined.
 // Returns an error if any numeric variable is present but malformed.
 func Load() (*Config, error) {
-	maxSize, err := parseIntEnv("MAX_PASTE_SIZE_BYTES", defaultMaxPasteSizeBytes)
+	// paas-charm's go-framework extension injects user-defined charm config
+	// with an APP_ prefix; fall back to the unprefixed name for local/non-charm runs.
+	maxSize, err := parseIntValue(firstEnv("APP_MAX_PASTE_SIZE_BYTES", "MAX_PASTE_SIZE_BYTES"), defaultMaxPasteSizeBytes)
 	if err != nil {
 		return nil, fmt.Errorf("MAX_PASTE_SIZE_BYTES: %w", err)
 	}
@@ -49,14 +51,14 @@ func Load() (*Config, error) {
 		Port:              envOrDefault("PORT", "8080"),
 		DatabaseURL:       envOrDefault("POSTGRESQL_DB_CONNECT_STRING", os.Getenv("DATABASE_URL")),
 		MaxPasteSizeBytes: maxSize,
-		BaseURL:           os.Getenv("BASE_URL"),
-		LogLevel:          envOrDefault("LOG_LEVEL", "info"),
+		BaseURL:           firstEnv("APP_BASE_URL", "BASE_URL"),
+		LogLevel:          valueOrDefault(firstEnv("APP_LOG_LEVEL", "LOG_LEVEL"), "info"),
 		OIDCIssuerURL:     os.Getenv("OIDC_ISSUER_URL"),
 		OIDCClientID:      os.Getenv("OIDC_CLIENT_ID"),
 		OIDCClientSecret:  os.Getenv("OIDC_CLIENT_SECRET"),
 		OIDCRedirectURL:   os.Getenv("OIDC_REDIRECT_URL"),
 		SessionSecret:     os.Getenv("SESSION_SECRET"),
-		WebDir:            os.Getenv("WEB_DIR"),
+		WebDir:            firstEnv("APP_WEB_DIR", "WEB_DIR"),
 	}
 
 	// Validate OIDC config: either all-or-nothing, and SESSION_SECRET required.
@@ -76,15 +78,29 @@ func Load() (*Config, error) {
 	return cfg, nil
 }
 
-func envOrDefault(key, def string) string {
-	if v := os.Getenv(key); v != "" {
-		return v
+// firstEnv returns the value of the first key that is set to a non-empty
+// string, checking keys in order, or "" if none are set.
+func firstEnv(keys ...string) string {
+	for _, k := range keys {
+		if v := os.Getenv(k); v != "" {
+			return v
+		}
 	}
-	return def
+	return ""
 }
 
-func parseIntEnv(key string, def int64) (int64, error) {
-	raw := os.Getenv(key)
+func envOrDefault(key, def string) string {
+	return valueOrDefault(os.Getenv(key), def)
+}
+
+func valueOrDefault(v, def string) string {
+	if v == "" {
+		return def
+	}
+	return v
+}
+
+func parseIntValue(raw string, def int64) (int64, error) {
 	if raw == "" {
 		return def, nil
 	}
