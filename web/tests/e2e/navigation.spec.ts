@@ -17,9 +17,9 @@ test.describe('Navigation', () => {
     await expect(page.getByRole('link', { name: /new paste/i })).toBeVisible()
   })
 
-  test('shows Log in link when not authenticated', async ({ page }) => {
+  test('hides Log in link when auth is disabled', async ({ page }) => {
     await page.goto('/')
-    await expect(page.getByRole('link', { name: /log in/i })).toBeVisible()
+    await expect(page.getByRole('link', { name: /log in/i })).not.toBeVisible()
   })
 
   test('New paste link on viewer navigates to home', async ({ page }) => {

@@ -1,14 +1,16 @@
 import { useNavigate } from 'react-router-dom'
 import AppNavigation from '../components/Navigation/Navigation'
 import NewPasteForm from '../components/NewPasteForm/NewPasteForm'
+import { useAuthEnabled } from '../hooks/useAuthEnabled'
 
 export default function HomePage() {
   const navigate = useNavigate()
   const isAuthenticated = document.cookie.includes('csrf_token=')
+  const authEnabled = useAuthEnabled()
 
   return (
     <>
-      <AppNavigation isAuthenticated={isAuthenticated} />
+      <AppNavigation isAuthenticated={isAuthenticated} authEnabled={authEnabled} />
       <main className="l-main">
         <section className="p-strip is-shallow">
           <div className="row">

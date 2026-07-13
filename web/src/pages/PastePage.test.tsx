@@ -19,6 +19,7 @@ const mockPaste = {
 
 beforeEach(() => {
   vi.mocked(client.getPaste).mockResolvedValue(mockPaste)
+  vi.mocked(client.getMe).mockResolvedValue({ auth_enabled: false, authenticated: false })
 })
 
 function renderPastePage(key = 'abc12') {

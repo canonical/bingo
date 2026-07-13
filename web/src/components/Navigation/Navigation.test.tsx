@@ -14,6 +14,11 @@ describe('Navigation', () => {
     expect(screen.getByRole('link', { name: /log in/i })).toBeInTheDocument()
   })
 
+  it('hides "Log in" link when auth is disabled', () => {
+    render(<MemoryRouter><Navigation isAuthenticated={false} authEnabled={false} /></MemoryRouter>)
+    expect(screen.queryByRole('link', { name: /log in/i })).not.toBeInTheDocument()
+  })
+
   it('shows "My pastes" and "Logout" when authenticated', () => {
     render(<MemoryRouter><Navigation isAuthenticated userEmail="a@b.com" /></MemoryRouter>)
     expect(screen.getByRole('link', { name: /my pastes/i })).toBeInTheDocument()

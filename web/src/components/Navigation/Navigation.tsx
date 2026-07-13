@@ -5,6 +5,9 @@ import type { NavItem, GenerateLink } from '@canonical/react-components'
 interface Props {
   isAuthenticated: boolean
   userEmail?: string
+  // Whether OIDC auth is configured on the server. Defaults to true so
+  // existing callers that don't pass it keep showing "Log in" as before.
+  authEnabled?: boolean
 }
 
 // generateLink is called for items with a `url`. Use react-router Link for
@@ -16,14 +19,16 @@ const generateLink: GenerateLink = ({ label, url, ...props }) => {
   return <a href={url} {...(props as object)}>{label}</a>
 }
 
-export default function AppNavigation({ isAuthenticated, userEmail }: Props) {
+export default function AppNavigation({ isAuthenticated, userEmail, authEnabled = true }: Props) {
   const rightItems: NavItem[] = isAuthenticated
     ? [
         { label: 'My pastes', url: '/my-pastes' },
         ...(userEmail ? [{ label: userEmail, url: '#' } as NavItem] : []),
         { label: 'Log out', url: '/auth/logout' },
       ]
-    : [{ label: 'Log in', url: '/auth/login' }]
+    : authEnabled
+      ? [{ label: 'Log in', url: '/auth/login' }]
+      : []
 
   return (
     <Navigation
