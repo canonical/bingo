@@ -76,8 +76,9 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 // securityHeadersMiddleware sets mandatory security headers on every response.
 func (s *Server) securityHeadersMiddleware(next http.Handler) http.Handler {
 	const csp = "default-src 'self'; " +
-		"style-src 'self' 'unsafe-inline'; " +
-		"img-src 'self' data:; " +
+		"style-src 'self' 'unsafe-inline' https://fonts.ubuntu.com; " +
+		"font-src 'self' https://assets.ubuntu.com; " +
+		"img-src 'self' data: https://assets.ubuntu.com; " +
 		"object-src 'none'; " +
 		"frame-ancestors 'none'"
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
