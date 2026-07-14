@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 )
 
 const defaultMaxPasteSizeBytes int64 = 5 * 1024 * 1024 // 5 MiB
@@ -47,17 +48,35 @@ func Load() (*Config, error) {
 		return nil, fmt.Errorf("MAX_PASTE_SIZE_BYTES: %w", err)
 	}
 
+	baseURL := firstEnv("APP_BASE_URL", "BASE_URL")
+
+	// OIDC config sources, in priority order:
+	//  1. Plain OIDC_*/SESSION_SECRET env vars (standalone/non-charm deployments).
+	//  2. The charm's `oauth` relation to Charmed Hydra, which paas_charm injects
+	//     as APP_OAUTH_* (client id/secret/issuer/endpoints) and APP_SECRET_KEY
+	//     (a charm-managed, peer-secret-stored session secret). The relation does
+	//     not provide a redirect URL, so it is derived from the base URL and the
+	//     app's fixed callback route.
+	oidcIssuerURL := firstEnv("OIDC_ISSUER_URL", "APP_OAUTH_API_BASE_URL")
+	oidcClientID := firstEnv("OIDC_CLIENT_ID", "APP_OAUTH_CLIENT_ID")
+	oidcClientSecret := firstEnv("OIDC_CLIENT_SECRET", "APP_OAUTH_CLIENT_SECRET")
+	oidcRedirectURL := os.Getenv("OIDC_REDIRECT_URL")
+	if oidcRedirectURL == "" && oidcIssuerURL != "" && oidcClientID != "" && oidcClientSecret != "" && baseURL != "" {
+		oidcRedirectURL = strings.TrimSuffix(baseURL, "/") + "/auth/callback"
+	}
+	sessionSecret := firstEnv("SESSION_SECRET", "APP_SECRET_KEY")
+
 	cfg := &Config{
 		Port:              envOrDefault("PORT", "8080"),
 		DatabaseURL:       envOrDefault("POSTGRESQL_DB_CONNECT_STRING", os.Getenv("DATABASE_URL")),
 		MaxPasteSizeBytes: maxSize,
-		BaseURL:           firstEnv("APP_BASE_URL", "BASE_URL"),
+		BaseURL:           baseURL,
 		LogLevel:          valueOrDefault(firstEnv("APP_LOG_LEVEL", "LOG_LEVEL"), "info"),
-		OIDCIssuerURL:     os.Getenv("OIDC_ISSUER_URL"),
-		OIDCClientID:      os.Getenv("OIDC_CLIENT_ID"),
-		OIDCClientSecret:  os.Getenv("OIDC_CLIENT_SECRET"),
-		OIDCRedirectURL:   os.Getenv("OIDC_REDIRECT_URL"),
-		SessionSecret:     os.Getenv("SESSION_SECRET"),
+		OIDCIssuerURL:     oidcIssuerURL,
+		OIDCClientID:      oidcClientID,
+		OIDCClientSecret:  oidcClientSecret,
+		OIDCRedirectURL:   oidcRedirectURL,
+		SessionSecret:     sessionSecret,
 		WebDir:            firstEnv("APP_WEB_DIR", "WEB_DIR"),
 	}
 
