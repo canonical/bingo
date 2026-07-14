@@ -31,9 +31,7 @@ juju wait-for application bingo --query='status=="active"'
 ## 2. Deploy a local Canonical Identity Platform
 
 Deploy hydra, kratos, the login UI, and their shared dependencies into the
-**same model** (collapsing the production `core`/`iam` two-model split from
-Canonical's tutorial into one model, since this is a local one-off check, not
-a production topology):
+**same model** (this is a local one-off check, not a production topology):
 
 ```bash
 juju deploy self-signed-certificates --channel 1/stable
@@ -71,8 +69,9 @@ juju wait-for application bingo --query='status=="active"'
 
 This triggers `paas_charm`'s `PaaSOAuthRequirer` to register bingo as an OAuth
 client with hydra, using the `oauth-redirect-path` (`/auth/callback` by
-default) and `oauth-scopes` (`openid email profile` by default) config values
-from Task 2. Confirm the registration happened:
+default), `oauth-scopes` (`openid email profile` by default), and
+`oauth-user-name-attribute` (`sub` by default) config values from Task 2.
+Confirm the registration happened:
 
 ```bash
 juju exec --application hydra -- hydra list oauth2-clients
