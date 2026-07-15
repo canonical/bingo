@@ -26,7 +26,7 @@ API, the same way Ory's own Hydra test suite does it.
 ## Prerequisites
 
 - A Juju controller (v3.6+) bootstrapped on MicroK8s with the `dns` and
-  `hostpath-storage` addons enabled (see `charm/concierge.yaml`).
+  `hostpath-storage` addons enabled (see `concierge.yaml`).
 - `charmcraft pack` has produced a `bingo_*.charm` file, and an OCI image for
   the `app-image` resource is available (see
   `charm/tests/integration/test_charm.py` for the equivalent CI pattern).

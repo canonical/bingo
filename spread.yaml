@@ -32,7 +32,7 @@ x-pytest-args: &pytest-args
     SPREAD_JOB={{ env.get("SPREAD_JOB", "") }}
 
 integration-suites:
-  tests/integration/:
+  charm/tests/integration/:
     <<: *pytest-args
     working-dir: ./
     summary: bingo charm integration tests (MicroK8s)
