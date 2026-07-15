@@ -3,6 +3,7 @@ package config
 
 import (
 	"fmt"
+	"net/url"
 	"os"
 	"strconv"
 	"strings"
@@ -26,6 +27,27 @@ type Config struct {
 	SessionSecret    string
 
 	WebDir string // WEB_DIR: path to web/dist; empty = disable static file serving
+}
+
+// BasePath returns the URL path component of BaseURL, with any trailing
+// slash trimmed (e.g. "/bingo-tutorial-bingo" for a BaseURL of
+// "https://host/bingo-tutorial-bingo"). Returns "" when BaseURL is empty,
+// unparseable, or has no path — i.e. when the app is served from the
+// domain root, as in local/non-charm runs or a subdomain-routed ingress.
+//
+// This exists because reverse proxies that route by path prefix (e.g.
+// Traefik ingress-per-app in its default "path" mode) strip that prefix
+// before forwarding requests to the app, so the app has no way to observe
+// it from the request alone. paas-charm's go-framework extension injects
+// the externally-visible URL (including any such prefix) as APP_BASE_URL,
+// which is why BaseURL is the authoritative source for it here — the same
+// source already used to build paste RawURL/URL and the OIDC redirect URL.
+func (c *Config) BasePath() string {
+	u, err := url.Parse(c.BaseURL)
+	if err != nil {
+		return ""
+	}
+	return strings.TrimSuffix(u.Path, "/")
 }
 
 // AuthEnabled reports whether OIDC authentication is fully configured.

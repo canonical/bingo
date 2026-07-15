@@ -2,8 +2,10 @@
 package server
 
 import (
+	"bytes"
 	"database/sql"
 	"encoding/json"
+	"log/slog"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -92,7 +94,9 @@ func (s *Server) securityHeadersMiddleware(next http.Handler) http.Handler {
 // requireAuthMiddleware gates the entire application behind authentication when auth
 // is enabled. Exempt paths (auth flow and healthz) are always allowed through.
 // For API paths, unauthenticated requests receive a 401 JSON response.
-// For browser paths, unauthenticated requests are redirected to /auth/login.
+// For browser paths, unauthenticated requests are redirected to the app's
+// externally-visible /auth/login (prefixed with cfg.BasePath so the redirect
+// resolves correctly behind path-prefix-stripping reverse proxies).
 // When auth is disabled (s.auth == nil), all requests pass through unchanged.
 func (s *Server) requireAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -111,7 +115,7 @@ func (s *Server) requireAuthMiddleware(next http.Handler) http.Handler {
 				writeError(w, http.StatusUnauthorized, "unauthenticated", "Login required.")
 				return
 			}
-			http.Redirect(w, r, "/auth/login", http.StatusFound)
+			http.Redirect(w, r, s.cfg.BasePath()+"/auth/login", http.StatusFound)
 			return
 		}
 		next.ServeHTTP(w, r)
@@ -161,16 +165,56 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 
 // serveStaticFiles registers a catch-all handler that serves web/dist as a SPA.
 // Requests matching /api/* or /auth/* are not intercepted (already registered).
-// Any path that doesn't resolve to an existing file falls back to index.html.
+// Any path that doesn't resolve to an existing file falls back to index.html,
+// served with an injected <base> tag (see indexHTMLWithBase) so the SPA's
+// relative asset/API references resolve against the app's externally
+// visible base path rather than the proxy's domain root.
 func (s *Server) serveStaticFiles(webDir string) {
 	fs := http.FileServer(http.Dir(webDir))
-	s.mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := filepath.Join(webDir, filepath.Clean("/"+r.URL.Path))
-		_, err := os.Stat(path)
-		if os.IsNotExist(err) {
+	indexHTML, err := s.indexHTMLWithBase(webDir)
+	if err != nil {
+		slog.Error("read index.html", "err", err)
+	}
+
+	serveIndex := func(w http.ResponseWriter, r *http.Request) {
+		if indexHTML == nil {
+			// Fall back to the unmodified file if it couldn't be read/patched
+			// at startup; this still works correctly when BasePath is "".
 			http.ServeFile(w, r, filepath.Join(webDir, "index.html"))
+			return
+		}
+		w.Header().Set("Content-Type", "text/html; charset=utf-8")
+		_, _ = w.Write(indexHTML)
+	}
+
+	s.mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		clean := filepath.Clean("/" + r.URL.Path)
+		if clean == "/" || clean == "/index.html" {
+			serveIndex(w, r)
+			return
+		}
+		if _, err := os.Stat(filepath.Join(webDir, clean)); os.IsNotExist(err) {
+			serveIndex(w, r)
 			return
 		}
 		fs.ServeHTTP(w, r)
 	}))
+}
+
+// indexHTMLWithBase reads webDir/index.html and injects a <base href> tag
+// derived from cfg.BasePath (see config.Config.BasePath) right after <head>.
+// Reverse proxies that route by path prefix (e.g. Traefik ingress-per-app in
+// its default "path" mode) strip that prefix before forwarding to the app,
+// so the built HTML's relative asset references (see vite.config.ts's
+// `base: "./"`) and the frontend's relative API calls would otherwise
+// resolve against the proxy's domain root instead of the app's externally
+// visible base path. With the <base> tag in place, both resolve correctly
+// under any prefix, including "" (domain root, e.g. local/non-charm runs).
+func (s *Server) indexHTMLWithBase(webDir string) ([]byte, error) {
+	data, err := os.ReadFile(filepath.Join(webDir, "index.html"))
+	if err != nil {
+		return nil, err
+	}
+	baseTag := `<base href="` + s.cfg.BasePath() + `/">`
+	return bytes.Replace(data, []byte("<head>"), []byte("<head>"+baseTag), 1), nil
 }

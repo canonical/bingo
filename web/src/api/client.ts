@@ -55,19 +55,19 @@ function csrfHeaders(): Record<string, string> {
 // ─── Public API ───────────────────────────────────────────────────────────────
 
 export async function getLanguages(): Promise<string[]> {
-  const body = await request<{ languages: string[] }>('/api/v1/languages', { method: 'GET' })
+  const body = await request<{ languages: string[] }>('api/v1/languages', { method: 'GET' })
   return body.languages
 }
 
 export async function getPaste(key: string): Promise<PasteResponse | null> {
-  const data = await request<unknown>(`/api/v1/pastes/${encodeURIComponent(key)}`, { method: 'GET' })
+  const data = await request<unknown>(`api/v1/pastes/${encodeURIComponent(key)}`, { method: 'GET' })
   if (data === undefined) return null  // 204 No Content — paste absent or expired
   if (!isPasteResponse(data)) throw new ApiRequestError(200, 'invalid_response', 'Unexpected response shape from GET /pastes/:key')
   return data
 }
 
 export async function createPaste(params: CreatePasteParams): Promise<CreatePasteResponse> {
-  const data = await request<unknown>('/api/v1/pastes', {
+  const data = await request<unknown>('api/v1/pastes', {
     method: 'POST',
     headers: csrfHeaders(),
     body: JSON.stringify(params),
@@ -77,20 +77,20 @@ export async function createPaste(params: CreatePasteParams): Promise<CreatePast
 }
 
 export async function deletePaste(key: string): Promise<void> {
-  return request<void>(`/api/v1/pastes/${encodeURIComponent(key)}`, {
+  return request<void>(`api/v1/pastes/${encodeURIComponent(key)}`, {
     method: 'DELETE',
     headers: csrfHeaders(),
   })
 }
 
 export async function getMyPastes(): Promise<MyPastesResponse> {
-  const data = await request<unknown>('/api/v1/pastes?mine=true', { method: 'GET' })
+  const data = await request<unknown>('api/v1/pastes?mine=true', { method: 'GET' })
   if (!isMyPastesResponse(data)) throw new ApiRequestError(200, 'invalid_response', 'Unexpected response shape from GET /pastes?mine=true')
   return data
 }
 
 export async function getMe(): Promise<MeResponse> {
-  const data = await request<unknown>('/api/v1/me', { method: 'GET' })
+  const data = await request<unknown>('api/v1/me', { method: 'GET' })
   if (typeof data !== 'object' || data === null || typeof (data as Record<string, unknown>).authenticated !== 'boolean') {
     throw new ApiRequestError(200, 'invalid_response', 'Unexpected response shape from GET /me')
   }

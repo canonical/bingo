@@ -21,7 +21,7 @@ describe('getLanguages', () => {
     mockFetch.mockResolvedValue(jsonResponse({ languages: ['python', 'go', 'text'] }))
     const langs = await getLanguages()
     expect(langs).toEqual(['python', 'go', 'text'])
-    expect(mockFetch).toHaveBeenCalledWith('/api/v1/languages', expect.objectContaining({ method: 'GET' }))
+    expect(mockFetch).toHaveBeenCalledWith('api/v1/languages', expect.objectContaining({ method: 'GET' }))
   })
 })
 
@@ -70,7 +70,7 @@ describe('createPaste', () => {
     const result = await createPaste({ content: 'print("hi")', language: 'python', expires_in: '1d' })
     expect(result.key).toBe('xyz99')
     const call = mockFetch.mock.calls[0]
-    expect(call[0]).toBe('/api/v1/pastes')
+    expect(call[0]).toBe('api/v1/pastes')
     const options = call[1] as RequestInit
     expect(options.method).toBe('POST')
     expect(JSON.parse(options.body as string)).toMatchObject({ language: 'python' })
@@ -102,7 +102,7 @@ describe('deletePaste', () => {
   it('sends DELETE and resolves on 204', async () => {
     mockFetch.mockResolvedValue(new Response(null, { status: 204 }))
     await expect(deletePaste('abc12')).resolves.toBeUndefined()
-    expect(mockFetch).toHaveBeenCalledWith('/api/v1/pastes/abc12', expect.objectContaining({ method: 'DELETE' }))
+    expect(mockFetch).toHaveBeenCalledWith('api/v1/pastes/abc12', expect.objectContaining({ method: 'DELETE' }))
   })
 })
 
