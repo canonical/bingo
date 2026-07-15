@@ -47,7 +47,11 @@ def test_healthz_responds(juju: jubilant.Juju) -> None:
         pytest.skip("Traefik not deployed; skipping healthz check")
     traefik_unit = next(iter(traefik_app.units.values()))
     ip = traefik_unit.address
-    url = f"http://{ip}/bingo/api/v1/healthz"
+    # traefik-k8s routes ingress-per-app requests under a
+    # "{model}-{app}" path prefix (see TraefikIngressCharm._get_prefix),
+    # not just the bare app name, so the prefix must be built dynamically.
+    prefix = f"{status.model.name}-bingo"
+    url = f"http://{ip}/{prefix}/api/v1/healthz"
     logger.info("Checking healthz at %s", url)
     with urllib.request.urlopen(url, timeout=10) as resp:
         assert resp.status == 200, f"Expected 200, got {resp.status}"
@@ -61,7 +65,8 @@ def test_paste_create_anonymous(juju: jubilant.Juju) -> None:
         pytest.skip("Traefik not deployed")
     traefik_unit = next(iter(traefik_app.units.values()))
     ip = traefik_unit.address
-    url = f"http://{ip}/bingo/api/v1/pastes"
+    prefix = f"{status.model.name}-bingo"
+    url = f"http://{ip}/{prefix}/api/v1/pastes"
     payload = json.dumps(
         {
             "content": "hello from integration test",
