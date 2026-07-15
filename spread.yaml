@@ -26,8 +26,8 @@ exclude:
 
 x-pytest-args: &pytest-args
   pytest-arguments-template: |
-    --model testing
-    --keep-models
+    --juju-model testing
+    --no-juju-teardown
   pytest-environment-template: |
     SPREAD_JOB={{ env.get("SPREAD_JOB", "") }}
 
