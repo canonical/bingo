@@ -3,6 +3,7 @@ package server_test
 import (
 	"net/http"
 	"net/http/httptest"
+	"net/url"
 	"testing"
 
 	"bingo/internal/auth"
@@ -102,5 +103,99 @@ func TestLogout_clearsCSRFCookie(t *testing.T) {
 	}
 	if !found {
 		t.Error("logout did not set a csrf_token cookie to clear it")
+	}
+}
+
+// newFakeOIDCServer starts a minimal fake OIDC discovery server that
+// advertises an end_session_endpoint, so tests can exercise RP-initiated
+// logout without a real IdP.
+func newFakeOIDCServer(t *testing.T) *httptest.Server {
+	t.Helper()
+	mux := http.NewServeMux()
+	var issuer string
+	mux.HandleFunc("/.well-known/openid-configuration", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{
+			"issuer": "` + issuer + `",
+			"authorization_endpoint": "` + issuer + `/oauth2/auth",
+			"token_endpoint": "` + issuer + `/oauth2/token",
+			"jwks_uri": "` + issuer + `/.well-known/jwks.json",
+			"end_session_endpoint": "` + issuer + `/oauth2/sessions/logout",
+			"response_types_supported": ["code"],
+			"subject_types_supported": ["public"],
+			"id_token_signing_alg_values_supported": ["RS256"]
+		}`))
+	})
+	mux.HandleFunc("/.well-known/jwks.json", func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`{"keys": []}`))
+	})
+	ts := httptest.NewServer(mux)
+	t.Cleanup(ts.Close)
+	issuer = ts.URL
+	return ts
+}
+
+func TestLogout_redirectsToIdPEndSessionEndpoint(t *testing.T) {
+	idp := newFakeOIDCServer(t)
+	cfg := &config.Config{
+		OIDCIssuerURL:    idp.URL,
+		OIDCClientID:     "test-client",
+		OIDCClientSecret: "test-secret",
+		OIDCRedirectURL:  "https://app.example.com/auth/callback",
+		SessionSecret:    "test-session-secret",
+	}
+	provider, err := auth.NewProvider(t.Context(), cfg)
+	if err != nil {
+		t.Fatalf("NewProvider() error = %v", err)
+	}
+
+	ts := newTestServerWithAuth(t, provider)
+
+	// Set a session cookie carrying an ID token, as handleCallback would.
+	rec := httptest.NewRecorder()
+	if err := provider.SetSession(rec, 1, "user-sub", "user@example.com", "the-id-token"); err != nil {
+		t.Fatalf("SetSession() error = %v", err)
+	}
+	var sessionCookie *http.Cookie
+	for _, c := range rec.Result().Cookies() {
+		if c.Name == "bingo_session" {
+			sessionCookie = c
+		}
+	}
+	if sessionCookie == nil {
+		t.Fatal("SetSession() did not set bingo_session cookie")
+	}
+
+	client := &http.Client{
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			return http.ErrUseLastResponse
+		},
+	}
+	req, err := http.NewRequest(http.MethodGet, ts.URL+"/auth/logout", nil)
+	if err != nil {
+		t.Fatalf("NewRequest() error = %v", err)
+	}
+	req.AddCookie(sessionCookie)
+	resp, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("GET /auth/logout: %v", err)
+	}
+	defer resp.Body.Close()
+
+	loc := resp.Header.Get("Location")
+	u, err := url.Parse(loc)
+	if err != nil {
+		t.Fatalf("Location header %q not parsable: %v", loc, err)
+	}
+	if got, want := u.Scheme+"://"+u.Host+u.Path, idp.URL+"/oauth2/sessions/logout"; got != want {
+		t.Errorf("logout Location = %q, want endpoint %q", got, want)
+	}
+	q := u.Query()
+	if got := q.Get("id_token_hint"); got != "the-id-token" {
+		t.Errorf("id_token_hint = %q, want %q", got, "the-id-token")
+	}
+	if got := q.Get("post_logout_redirect_uri"); got != "https://example.com/" {
+		t.Errorf("post_logout_redirect_uri = %q, want %q", got, "https://example.com/")
 	}
 }

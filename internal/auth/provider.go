@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/http"
+	"net/url"
 
 	gooidc "github.com/coreos/go-oidc/v3/oidc"
 	"golang.org/x/oauth2"
@@ -32,6 +33,10 @@ type Provider struct {
 	oauth2Config oauth2.Config
 	verifier     *gooidc.IDTokenVerifier
 	codec        *Codec
+	// endSessionEndpoint is the IdP's RP-initiated logout endpoint (OIDC
+	// "end session" endpoint), read from discovery metadata if advertised.
+	// Empty when the IdP doesn't support it — LogoutURL then returns "".
+	endSessionEndpoint string
 }
 
 // NewProvider initialises the OIDC provider by fetching discovery metadata from
@@ -52,11 +57,16 @@ func NewProvider(ctx context.Context, cfg *config.Config) (*Provider, error) {
 		Scopes:       []string{gooidc.ScopeOpenID, "email", "profile"},
 	}
 	verifier := oidcProv.Verifier(&gooidc.Config{ClientID: cfg.OIDCClientID})
+	var discovery struct {
+		EndSessionEndpoint string `json:"end_session_endpoint"`
+	}
+	_ = oidcProv.Claims(&discovery) // best-effort; not all IdPs advertise this
 	return &Provider{
-		oidcProvider: oidcProv,
-		oauth2Config: oauth2Cfg,
-		verifier:     verifier,
-		codec:        NewCodec(cfg.SessionSecret),
+		oidcProvider:       oidcProv,
+		oauth2Config:       oauth2Cfg,
+		verifier:           verifier,
+		codec:              NewCodec(cfg.SessionSecret),
+		endSessionEndpoint: discovery.EndSessionEndpoint,
 	}, nil
 }
 
@@ -69,38 +79,65 @@ func (p *Provider) AuthCodeURL(state string) string {
 }
 
 // Exchange exchanges the authorization code for an ID token, validates it, and
-// returns the user's OIDC sub claim and email address.
-func (p *Provider) Exchange(ctx context.Context, code string) (sub, email string, err error) {
+// returns the user's OIDC sub claim, email address, and the raw ID token
+// (retained for RP-initiated logout; see Session.IDToken and LogoutURL).
+func (p *Provider) Exchange(ctx context.Context, code string) (sub, email, rawIDToken string, err error) {
 	token, err := p.oauth2Config.Exchange(ctx, code)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	rawIDToken, ok := token.Extra("id_token").(string)
 	if !ok {
-		return "", "", fmt.Errorf("id_token missing from token response")
+		return "", "", "", fmt.Errorf("id_token missing from token response")
 	}
 	idToken, err := p.verifier.Verify(ctx, rawIDToken)
 	if err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
 	var claims struct {
 		Sub   string `json:"sub"`
 		Email string `json:"email"`
 	}
 	if err := idToken.Claims(&claims); err != nil {
-		return "", "", err
+		return "", "", "", err
 	}
-	return claims.Sub, claims.Email, nil
+	return claims.Sub, claims.Email, rawIDToken, nil
 }
 
-// SetSession encodes the user identity into the session cookie.
-func (p *Provider) SetSession(w http.ResponseWriter, userID int64, sub, email string) error {
-	return p.codec.Set(w, &Session{UserID: userID, Sub: sub, Email: email})
+// SetSession encodes the user identity into the session cookie. idToken is
+// the raw ID token from Exchange, retained solely so a later LogoutURL call
+// can pass it back to the IdP as an id_token_hint.
+func (p *Provider) SetSession(w http.ResponseWriter, userID int64, sub, email, idToken string) error {
+	return p.codec.Set(w, &Session{UserID: userID, Sub: sub, Email: email, IDToken: idToken})
 }
 
 // ClearSession clears the session cookie.
 func (p *Provider) ClearSession(w http.ResponseWriter) {
 	p.codec.Clear(w)
+}
+
+// LogoutURL returns the IdP's RP-initiated logout URL for idTokenHint,
+// which will redirect the browser back to postLogoutRedirectURI once the
+// IdP's own session (e.g. Kratos) has been ended. Returns "" when auth is
+// disabled or the IdP doesn't advertise an end_session_endpoint — callers
+// should fall back to a plain local redirect in that case.
+//
+// Without this, clearing only bingo's own session cookie is insufficient:
+// since the whole app is gated behind auth, the very next request
+// immediately redirects to /auth/login, and if the browser still holds a
+// valid IdP session, the IdP silently re-authenticates it (SSO) — the user
+// never appears logged out.
+func (p *Provider) LogoutURL(idTokenHint, postLogoutRedirectURI string) string {
+	if p == nil || p.endSessionEndpoint == "" {
+		return ""
+	}
+	v := url.Values{}
+	if idTokenHint != "" {
+		v.Set("id_token_hint", idTokenHint)
+	}
+	v.Set("post_logout_redirect_uri", postLogoutRedirectURI)
+	v.Set("client_id", p.oauth2Config.ClientID)
+	return p.endSessionEndpoint + "?" + v.Encode()
 }
 
 // Middleware returns an http.Handler that reads the session cookie and injects a
