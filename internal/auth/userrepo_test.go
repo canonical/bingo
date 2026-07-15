@@ -65,3 +65,15 @@ func TestUserRepository_UpsertUser(t *testing.T) {
 	// Cleanup.
 	testDB.ExecContext(ctx, "DELETE FROM users WHERE sub = $1", sub) //nolint:errcheck
 }
+
+func TestUserRepository_UpsertUser_queryError(t *testing.T) {
+	repo := requireDB(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // already-cancelled context: the query must fail
+
+	_, err := repo.UpsertUser(ctx, "sub|cancelled", "cancelled@example.com")
+	if err == nil {
+		t.Fatal("UpsertUser() with a cancelled context: want error, got nil")
+	}
+}

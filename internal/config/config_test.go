@@ -136,6 +136,29 @@ func TestLoad_OIDCEnabledRequiresSessionSecret(t *testing.T) {
 	}
 }
 
+func TestConfig_BasePath(t *testing.T) {
+	tests := []struct {
+		name    string
+		baseURL string
+		want    string
+	}{
+		{"empty base URL", "", ""},
+		{"domain root, no path", "https://bingo.example.com", ""},
+		{"domain root with trailing slash", "https://bingo.example.com/", ""},
+		{"path prefix", "https://traefik-ip/bingo-tutorial-bingo", "/bingo-tutorial-bingo"},
+		{"path prefix with trailing slash", "https://traefik-ip/bingo-tutorial-bingo/", "/bingo-tutorial-bingo"},
+		{"unparseable URL", "://not a url", ""},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &config.Config{BaseURL: tt.baseURL}
+			if got := cfg.BasePath(); got != tt.want {
+				t.Errorf("BasePath() = %q, want %q", got, tt.want)
+			}
+		})
+	}
+}
+
 func clearOIDCEnv(t *testing.T) {
 	t.Helper()
 	for _, k := range []string{

@@ -233,6 +233,46 @@ func TestPostgresRepository_DeleteExpired(t *testing.T) {
 	}
 }
 
+func TestPostgresRepository_Create_queryError(t *testing.T) {
+	repo := requireDB(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // already-cancelled: insert must fail with a non-pg-collision error
+
+	_, err := repo.Create(ctx, paste.CreateParams{
+		Content:   "will fail",
+		Language:  "plaintext",
+		ExpiresIn: paste.ExpiresIn1d,
+	})
+	if err == nil {
+		t.Fatal("Create() with a cancelled context: want error, got nil")
+	}
+}
+
+func TestPostgresRepository_DeleteExpired_queryError(t *testing.T) {
+	repo := requireDB(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := repo.DeleteExpired(ctx)
+	if err == nil {
+		t.Fatal("DeleteExpired() with a cancelled context: want error, got nil")
+	}
+}
+
+func TestPostgresRepository_ListByOwner_queryError(t *testing.T) {
+	repo := requireDB(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := repo.ListByOwner(ctx, 1, 50)
+	if err == nil {
+		t.Fatal("ListByOwner() with a cancelled context: want error, got nil")
+	}
+}
+
 func TestPostgresRepository_ListByOwner(t *testing.T) {
 	repo := requireDB(t)
 

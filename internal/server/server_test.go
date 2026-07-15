@@ -5,8 +5,12 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -21,6 +25,11 @@ import (
 	"bingo/internal/paste"
 	"bingo/internal/server"
 )
+
+// errTestRepo is a sentinel repository error used to exercise handlers'
+// generic internal_error branches (as opposed to specific errors like
+// paste.ErrNotFound).
+var errTestRepo = errors.New("simulated repository error")
 
 // stubRepo is a configurable paste.Repository for handler tests.
 type stubRepo struct {
@@ -124,6 +133,106 @@ func TestCreatePaste_success(t *testing.T) {
 	}
 	if got["key"] != "abcd" {
 		t.Errorf("key = %v, want abcd", got["key"])
+	}
+}
+
+func TestCreatePaste_invalidJSON(t *testing.T) {
+	ts := newTestServer(t, defaultRepo())
+
+	resp, err := http.Post(ts.URL+"/api/v1/pastes", "application/json", strings.NewReader(`{not valid json`))
+	if err != nil {
+		t.Fatalf("POST: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusBadRequest {
+		t.Errorf("status = %d, want 400", resp.StatusCode)
+	}
+	var errResp struct {
+		Error struct{ Code string } `json:"error"`
+	}
+	json.NewDecoder(resp.Body).Decode(&errResp) //nolint:errcheck
+	if errResp.Error.Code != "invalid_request" {
+		t.Errorf("error code = %q, want invalid_request", errResp.Error.Code)
+	}
+}
+
+func TestCreatePaste_bodyExceedsMaxBytesReader(t *testing.T) {
+	// A request body larger than MaxPasteSizeBytes+jsonOverhead is rejected
+	// by http.MaxBytesReader during JSON decoding itself (distinct from the
+	// explicit content-length check below it).
+	cfg := &config.Config{BaseURL: "https://example.com", MaxPasteSizeBytes: 10}
+	srv := server.New(cfg, nil, defaultRepo(), nil, nil)
+	ts := httptest.NewServer(srv)
+	t.Cleanup(ts.Close)
+
+	hugeContent := bytes.Repeat([]byte("x"), 10+4096+1)
+	body, _ := json.Marshal(map[string]string{
+		"content": string(hugeContent), "language": "go", "expires_in": "1d",
+	})
+	resp, err := http.Post(ts.URL+"/api/v1/pastes", "application/json", bytes.NewReader(body))
+	if err != nil {
+		t.Fatalf("POST: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusRequestEntityTooLarge {
+		t.Errorf("status = %d, want 413", resp.StatusCode)
+	}
+}
+
+func TestCreatePaste_repoError(t *testing.T) {
+	repo := defaultRepo()
+	repo.createFn = func(_ context.Context, _ paste.CreateParams) (*paste.Paste, error) {
+		return nil, errTestRepo
+	}
+	ts := newTestServer(t, repo)
+
+	resp, err := http.Post(ts.URL+"/api/v1/pastes", "application/json",
+		strings.NewReader(`{"content":"x","language":"go","expires_in":"1d"}`))
+	if err != nil {
+		t.Fatalf("POST: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", resp.StatusCode)
+	}
+}
+
+func TestGetPaste_repoError(t *testing.T) {
+	repo := defaultRepo()
+	repo.getByKeyFn = func(_ context.Context, _ string) (*paste.Paste, error) {
+		return nil, errTestRepo
+	}
+	ts := newTestServer(t, repo)
+
+	resp, err := http.Get(ts.URL + "/api/v1/pastes/somekey")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", resp.StatusCode)
+	}
+}
+
+func TestGetPasteRaw_notFound(t *testing.T) {
+	repo := defaultRepo()
+	repo.getByKeyFn = func(_ context.Context, _ string) (*paste.Paste, error) {
+		return nil, paste.ErrNotFound
+	}
+	ts := newTestServer(t, repo)
+
+	resp, err := http.Get(ts.URL + "/api/v1/pastes/nosuchkey/raw")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		t.Errorf("status = %d, want 204", resp.StatusCode)
 	}
 }
 
@@ -497,6 +606,71 @@ func TestDeletePaste_wrongOwner(t *testing.T) {
 	}
 }
 
+func TestDeletePaste_notFound(t *testing.T) {
+	repo := defaultRepo()
+	repo.getByKeyFn = func(_ context.Context, _ string) (*paste.Paste, error) {
+		return nil, paste.ErrNotFound
+	}
+	ts := newTestServer(t, repo)
+
+	req, _ := http.NewRequest(http.MethodDelete, ts.URL+"/api/v1/pastes/nosuchkey", nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("DELETE: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNotFound {
+		t.Errorf("status = %d, want 404", resp.StatusCode)
+	}
+}
+
+func TestDeletePaste_getByKeyRepoError(t *testing.T) {
+	repo := defaultRepo()
+	repo.getByKeyFn = func(_ context.Context, _ string) (*paste.Paste, error) {
+		return nil, errTestRepo
+	}
+	ts := newTestServer(t, repo)
+
+	req, _ := http.NewRequest(http.MethodDelete, ts.URL+"/api/v1/pastes/somekey", nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("DELETE: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", resp.StatusCode)
+	}
+}
+
+func TestDeletePaste_deleteRepoError(t *testing.T) {
+	ownerID := int64(42)
+	repo := defaultRepo()
+	repo.getByKeyFn = func(_ context.Context, _ string) (*paste.Paste, error) {
+		return &paste.Paste{Key: "mykey", OwnerID: &ownerID, ExpiresAt: time.Now().Add(time.Hour)}, nil
+	}
+	repo.deleteFn = func(_ context.Context, _ string) error {
+		return errTestRepo
+	}
+	cfg := &config.Config{BaseURL: "https://example.com", MaxPasteSizeBytes: 5 * 1024 * 1024}
+	srv := server.New(cfg, nil, repo, nil, nil)
+	wrapped := injectSession(srv, &auth.Session{UserID: 42, Sub: "sub|42", Email: "a@b.com"})
+	ts := httptest.NewServer(wrapped)
+	t.Cleanup(ts.Close)
+
+	req, _ := http.NewRequest(http.MethodDelete, ts.URL+"/api/v1/pastes/mykey", nil)
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		t.Fatalf("DELETE: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", resp.StatusCode)
+	}
+}
+
 func TestListMyPastes_authDisabled(t *testing.T) {
 	ts := newTestServer(t, defaultRepo())
 
@@ -571,6 +745,28 @@ func TestListMyPastes_authenticated(t *testing.T) {
 		if _, hasContent := item["content"]; hasContent {
 			t.Error("list item must not include the content field")
 		}
+	}
+}
+
+func TestListMyPastes_repoError(t *testing.T) {
+	repo := defaultRepo()
+	repo.listByOwnerFn = func(_ context.Context, _ int64, _ int) ([]*paste.Paste, error) {
+		return nil, errTestRepo
+	}
+	cfg := &config.Config{BaseURL: "https://example.com", MaxPasteSizeBytes: 5 * 1024 * 1024}
+	srv := server.New(cfg, nil, repo, nil, nil)
+	wrapped := injectSession(srv, &auth.Session{UserID: 7, Sub: "sub|7", Email: "c@c.com"})
+	ts := httptest.NewServer(wrapped)
+	t.Cleanup(ts.Close)
+
+	resp, err := http.Get(ts.URL + "/api/v1/pastes?mine=true")
+	if err != nil {
+		t.Fatalf("GET: %v", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusInternalServerError {
+		t.Errorf("status = %d, want 500", resp.StatusCode)
 	}
 }
 
@@ -814,4 +1010,100 @@ func TestHealthz_dbUnavailable_returns503(t *testing.T) {
 	defer resp.Body.Close()
 
 	assert.Equal(t, http.StatusServiceUnavailable, resp.StatusCode)
+}
+
+// ─── New: authProvider/userRepo invariant ────────────────────────────────────
+
+func TestNew_panicsOnMismatchedAuthArgs(t *testing.T) {
+	cfg := &config.Config{BaseURL: "https://example.com", MaxPasteSizeBytes: 5 * 1024 * 1024}
+	defer func() {
+		if r := recover(); r == nil {
+			t.Error("New() with non-nil authProvider and nil userRepo: want panic, got none")
+		}
+	}()
+	server.New(cfg, nil, defaultRepo(), new(auth.Provider), nil)
+}
+
+// ─── serveStaticFiles / indexHTMLWithBase ────────────────────────────────────
+
+func TestServeStaticFiles_servesIndexAtRoot(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "index.html"), []byte("<html><head></head><body>hi</body></html>"), 0o644))
+
+	cfg := &config.Config{BaseURL: "https://example.com", MaxPasteSizeBytes: 5 * 1024 * 1024, WebDir: dir}
+	srv := server.New(cfg, nil, defaultRepo(), nil, nil)
+	ts := httptest.NewServer(srv)
+	t.Cleanup(ts.Close)
+
+	resp, err := http.Get(ts.URL + "/")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Contains(t, string(body), `<base href="/">`)
+}
+
+func TestServeStaticFiles_servesExistingAsset(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "index.html"), []byte("<html><head></head><body>hi</body></html>"), 0o644))
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "app.js"), []byte("console.log('hi')"), 0o644))
+
+	cfg := &config.Config{BaseURL: "https://example.com", MaxPasteSizeBytes: 5 * 1024 * 1024, WebDir: dir}
+	srv := server.New(cfg, nil, defaultRepo(), nil, nil)
+	ts := httptest.NewServer(srv)
+	t.Cleanup(ts.Close)
+
+	resp, err := http.Get(ts.URL + "/app.js")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Equal(t, "console.log('hi')", string(body))
+}
+
+func TestServeStaticFiles_unknownPathFallsBackToIndex(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "index.html"), []byte("<html><head></head><body>hi</body></html>"), 0o644))
+
+	cfg := &config.Config{
+		BaseURL:           "https://traefik-ip/bingo-tutorial-bingo",
+		MaxPasteSizeBytes: 5 * 1024 * 1024,
+		WebDir:            dir,
+	}
+	srv := server.New(cfg, nil, defaultRepo(), nil, nil)
+	ts := httptest.NewServer(srv)
+	t.Cleanup(ts.Close)
+
+	// A SPA client-side route with no matching file on disk must fall back
+	// to index.html, with the <base> tag reflecting cfg.BasePath().
+	resp, err := http.Get(ts.URL + "/some/client/route")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	assert.Contains(t, string(body), `<base href="/bingo-tutorial-bingo/">`)
+}
+
+func TestServeStaticFiles_missingIndexHTMLFallsBackToServeFile(t *testing.T) {
+	// No index.html on disk at all: indexHTMLWithBase fails to read it, so
+	// serveStaticFiles must fall back to http.ServeFile (which 404s cleanly
+	// rather than panicking).
+	dir := t.TempDir()
+
+	cfg := &config.Config{BaseURL: "https://example.com", MaxPasteSizeBytes: 5 * 1024 * 1024, WebDir: dir}
+	srv := server.New(cfg, nil, defaultRepo(), nil, nil)
+	ts := httptest.NewServer(srv)
+	t.Cleanup(ts.Close)
+
+	resp, err := http.Get(ts.URL + "/")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+
+	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }

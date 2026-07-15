@@ -61,6 +61,27 @@ func TestValidateCSRF_mismatch(t *testing.T) {
 	}
 }
 
+func TestClearCSRFCookie(t *testing.T) {
+	w := httptest.NewRecorder()
+	auth.ClearCSRFCookie(w)
+
+	found := false
+	for _, c := range w.Result().Cookies() {
+		if c.Name == "csrf_token" {
+			found = true
+			if c.MaxAge >= 0 {
+				t.Errorf("csrf_token MaxAge = %d, want < 0 (clear)", c.MaxAge)
+			}
+			if c.Value != "" {
+				t.Errorf("csrf_token value = %q, want empty", c.Value)
+			}
+		}
+	}
+	if !found {
+		t.Error("ClearCSRFCookie() did not set a csrf_token cookie")
+	}
+}
+
 func TestSetCSRFCookie_isNotHttpOnly(t *testing.T) {
 	w := httptest.NewRecorder()
 	auth.SetCSRFCookie(w, "mytoken")

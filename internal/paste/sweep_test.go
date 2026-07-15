@@ -2,6 +2,7 @@ package paste_test
 
 import (
 	"context"
+	"errors"
 	"sync"
 	"testing"
 	"time"
@@ -11,7 +12,7 @@ import (
 
 // mockRepository implements paste.Repository for testing.
 type mockRepository struct {
-	mu              sync.Mutex
+	mu                 sync.Mutex
 	deleteExpiredCalls int
 }
 
@@ -36,6 +37,47 @@ func (m *mockRepository) DeleteExpired(ctx context.Context) (int64, error) {
 
 func (m *mockRepository) ListByOwner(ctx context.Context, ownerID int64, limit int) ([]*paste.Paste, error) {
 	return nil, nil
+}
+
+// erroringRepository always fails DeleteExpired, so StartSweep's tick error
+// branch (log-and-continue) is exercised.
+type erroringRepository struct {
+	mu    sync.Mutex
+	calls int
+}
+
+func (m *erroringRepository) Create(ctx context.Context, params paste.CreateParams) (*paste.Paste, error) {
+	return nil, nil
+}
+func (m *erroringRepository) GetByKey(ctx context.Context, key string) (*paste.Paste, error) {
+	return nil, nil
+}
+func (m *erroringRepository) Delete(ctx context.Context, key string) error { return nil }
+func (m *erroringRepository) DeleteExpired(ctx context.Context) (int64, error) {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	m.calls++
+	return 0, errors.New("simulated delete expired failure")
+}
+func (m *erroringRepository) ListByOwner(ctx context.Context, ownerID int64, limit int) ([]*paste.Paste, error) {
+	return nil, nil
+}
+
+func TestStartSweep_continuesAfterError(t *testing.T) {
+	mock := &erroringRepository{}
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	cancelSweep := paste.StartSweep(ctx, mock, 5*time.Millisecond)
+	time.Sleep(20 * time.Millisecond)
+	cancelSweep()
+
+	mock.mu.Lock()
+	calls := mock.calls
+	mock.mu.Unlock()
+	if calls < 1 {
+		t.Errorf("DeleteExpired called %d times despite errors, want >= 1 (sweep must keep ticking)", calls)
+	}
 }
 
 func TestStartSweep_callsDeleteExpired(t *testing.T) {
