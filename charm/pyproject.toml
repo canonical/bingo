@@ -66,9 +66,6 @@ extend-exclude = ["__pycache__", "*.egg_info"]
 [tool.ruff.lint.mccabe]
 max-complexity = 10
 
-[tool.codespell]
-skip = "build,lib,venv,icon.svg,.tox,.git,.mypy_cache,.ruff_cache,.coverage"
-
 [tool.pyright]
 include = ["src", "tests"]
 reportMissingModuleSource = false
