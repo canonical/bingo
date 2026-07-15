@@ -161,8 +161,8 @@ func TestLogout_redirectsToIdPEndSessionEndpoint(t *testing.T) {
 
 	// Set a session cookie carrying an ID token, as handleCallback would.
 	rec := httptest.NewRecorder()
-	if err := provider.SetSession(rec, 1, "user-sub", "user@example.com", "the-id-token"); err != nil {
-		t.Fatalf("SetSession() error = %v", err)
+	if sessErr := provider.SetSession(rec, 1, "user-sub", "user@example.com", "the-id-token"); sessErr != nil {
+		t.Fatalf("SetSession() error = %v", sessErr)
 	}
 	var sessionCookie *http.Cookie
 	for _, c := range rec.Result().Cookies() {

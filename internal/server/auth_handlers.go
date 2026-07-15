@@ -81,8 +81,8 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := s.auth.SetSession(w, userID, sub, email, idToken); err != nil {
-		slog.Error("set session cookie", "err", err)
+	if sessErr := s.auth.SetSession(w, userID, sub, email, idToken); sessErr != nil {
+		slog.Error("set session cookie", "err", sessErr)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Internal server error.")
 		return
 	}

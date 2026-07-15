@@ -50,7 +50,7 @@ jobs:
           echo "Coverage: ${COVERAGE}%"
           awk "BEGIN { if (${COVERAGE} < 85) { print \"Coverage ${COVERAGE}% is below 85% gate\"; exit 1 } }"
 
-      - uses: golangci/golangci-lint-action@v6
+      - uses: golangci/golangci-lint-action@v9
         with:
-          version: latest
+          version: v2.12
           args: --timeout 5m

@@ -172,8 +172,8 @@ func TestPostgresRepository_Delete(t *testing.T) {
 		t.Fatalf("Create(): %v", err)
 	}
 
-	if err := repo.Delete(context.Background(), p.Key); err != nil {
-		t.Fatalf("Delete(): %v", err)
+	if delErr := repo.Delete(context.Background(), p.Key); delErr != nil {
+		t.Fatalf("Delete(): %v", delErr)
 	}
 
 	_, err = repo.GetByKey(context.Background(), p.Key)
