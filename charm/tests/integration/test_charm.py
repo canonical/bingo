@@ -7,12 +7,13 @@ These tests run via jubilant + pytest-jubilant inside the charm-ci spread enviro
 (MicroK8s + Juju 3.6). They are NOT run during local development.
 
 Usage (in spread environment):
-    pytest tests/integration/ -v --app-image <oci-image-ref>
+    pytest tests/integration/ -v
+    (charm_path/resource_images are supplied automatically by the pytest-opcli
+    plugin from artifacts.build.yaml; see opcli.pytest_plugin.)
 """
 
 import json
 import logging
-import pathlib
 import urllib.request
 
 import jubilant
@@ -21,27 +22,12 @@ import pytest
 logger = logging.getLogger(__name__)
 
 
-def pytest_addoption(parser: pytest.Parser) -> None:
-    parser.addoption(
-        "--app-image",
-        action="store",
-        help="OCI image reference for the bingo app-image resource",
-    )
-
-
-@pytest.fixture(scope="module")
-def app_image(request: pytest.FixtureRequest) -> str:
-    """OCI image path; provided via --app-image CLI option."""
-    image = request.config.getoption("--app-image", default=None)
-    if image is None:
-        pytest.skip("--app-image not provided; skipping integration tests")
-    return str(image)
-
-
 @pytest.mark.juju_setup
-def test_build_and_deploy(charm: pathlib.Path, juju: jubilant.Juju, app_image: str) -> None:
+def test_build_and_deploy(
+    charm_path: str, juju: jubilant.Juju, resource_images: dict[str, str]
+) -> None:
     """Deploy the charm with the OCI rock."""
-    juju.deploy(charm, app="bingo", resources={"app-image": app_image}, trust=True)
+    juju.deploy(charm_path, app="bingo", resources=resource_images, trust=True)
 
     juju.deploy("postgresql-k8s", app="postgresql", channel="14/stable", trust=True)
     juju.integrate("bingo:postgresql", "postgresql:database")
@@ -95,4 +81,3 @@ def test_paste_create_anonymous(juju: jubilant.Juju) -> None:
         assert "key" in body
         assert len(body["key"]) >= 4
         logger.info("Created paste with key: %s", body["key"])
-

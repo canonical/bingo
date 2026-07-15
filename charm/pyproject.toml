@@ -4,7 +4,7 @@
 [project]
 name = "bingo"
 version = "0.0.1"
-requires-python = ">=3.10"
+requires-python = ">=3.12"
 
 # Charm code dependencies. For charm libraries fetched via `charmcraft fetch-libs`,
 # inspect each library's PYDEPS list and add those here instead.
@@ -30,6 +30,7 @@ integration = [
     "pytest",
     "pytest-jubilant>=2.0.1,<3",
     "PyYAML",
+    "opcli @ git+https://github.com/canonical/charm-ci",
 ]
 
 [tool.coverage.run]
