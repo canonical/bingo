@@ -126,6 +126,10 @@ def _deploy_identity_bundle(juju: jubilant.Juju) -> None:
     juju.integrate(
         "kratos:ui-endpoint-info", "identity-platform-login-ui-operator:ui-endpoint-info"
     )
+    # hydra requires a public-route relation to a traefik-route provider or it stays
+    # blocked ("Missing required relation with public-route"); reuse the traefik app
+    # already deployed for bingo's own ingress relation.
+    juju.integrate("hydra:public-route", "traefik:traefik-route")
 
     juju.wait(
         lambda status: jubilant.all_active(status, "hydra", "kratos"),

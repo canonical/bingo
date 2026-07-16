@@ -9,7 +9,6 @@ on:
   push:
     branches:
       - main
-      - feat/initial-development-isd-6054
 
 jobs:
   integration-test:
