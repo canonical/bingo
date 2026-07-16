@@ -18,8 +18,18 @@ import urllib.request
 
 import jubilant
 import pytest
+from minio import Minio
 
 logger = logging.getLogger(__name__)
+
+# Revisions pinned for reproducible CI runs; bump deliberately when needed.
+_HYDRA_CHANNEL = "latest/edge"
+_KRATOS_CHANNEL = "latest/edge"
+_LOGIN_UI_CHANNEL = "latest/edge"
+_TEMPO_WORKER_CHANNEL = "2/edge"
+_TEMPO_COORDINATOR_CHANNEL = "2/edge"
+_MINIO_CHANNEL = "edge"
+_S3_INTEGRATOR_CHANNEL = "edge"
 
 
 @pytest.mark.juju_setup
@@ -86,3 +96,147 @@ def test_paste_create_anonymous(juju: jubilant.Juju) -> None:
         assert "key" in body
         assert len(body["key"]) >= 4
         logger.info("Created paste with key: %s", body["key"])
+
+
+def _deploy_identity_bundle(juju: jubilant.Juju) -> None:
+    """Deploy a minimal Canonical identity bundle (hydra + kratos + login-ui).
+
+    Reuses the "postgresql" app already deployed for bingo:postgresql, since
+    postgresql-k8s supports multiple simultaneous client relations.
+    """
+    status = juju.status()
+    if "hydra" in status.apps:
+        logger.info("identity bundle already deployed")
+        return
+
+    juju.deploy("hydra", channel=_HYDRA_CHANNEL, trust=True)
+    juju.deploy("kratos", channel=_KRATOS_CHANNEL, trust=True)
+    juju.deploy("identity-platform-login-ui-operator", channel=_LOGIN_UI_CHANNEL, trust=True)
+
+    juju.integrate("hydra:pg-database", "postgresql:database")
+    juju.integrate("kratos:pg-database", "postgresql:database")
+    juju.integrate(
+        "hydra:hydra-endpoint-info", "identity-platform-login-ui-operator:hydra-endpoint-info"
+    )
+    juju.integrate("hydra:hydra-endpoint-info", "kratos:hydra-endpoint-info")
+    juju.integrate("kratos:kratos-info", "identity-platform-login-ui-operator:kratos-info")
+    juju.integrate(
+        "hydra:ui-endpoint-info", "identity-platform-login-ui-operator:ui-endpoint-info"
+    )
+    juju.integrate(
+        "kratos:ui-endpoint-info", "identity-platform-login-ui-operator:ui-endpoint-info"
+    )
+
+    juju.wait(
+        lambda status: jubilant.all_active(status, "hydra", "kratos"),
+        timeout=900,
+        delay=10,
+    )
+    logger.info("identity bundle is active")
+
+
+def test_oauth_integration(juju: jubilant.Juju) -> None:
+    """Integrate bingo with the identity platform over the oauth relation.
+
+    arrange: deploy hydra/kratos/login-ui, wired to the shared postgresql app.
+    act: integrate bingo:oauth with hydra:oauth.
+    assert: both bingo and hydra settle to active with the relation established.
+    """
+    _deploy_identity_bundle(juju)
+
+    juju.integrate("bingo:oauth", "hydra:oauth")
+    juju.wait(
+        lambda status: jubilant.all_active(status, "bingo", "hydra"),
+        timeout=900,
+        delay=10,
+    )
+
+    status = juju.status()
+    assert status.apps["bingo"].relations.get("oauth"), "bingo:oauth relation not established"
+    logger.info("bingo:oauth relation is active")
+
+
+def _deploy_tracing_stack(juju: jubilant.Juju) -> None:
+    """Deploy a minio-backed Tempo (tracing) stack for testing.
+
+    Mirrors the pattern used by canonical/paas-charm and canonical/tempo-operators'
+    deploy_minio.py: minio + s3-integrator provide the object storage backend
+    tempo-coordinator-k8s requires.
+    """
+    status = juju.status()
+    if "tempo" in status.apps:
+        logger.info("tracing stack already deployed")
+        return
+
+    access_key, secret_key, bucket = "accesskey", "secretkey", "tempo"
+
+    juju.deploy(
+        "minio",
+        channel=_MINIO_CHANNEL,
+        trust=True,
+        config={"access-key": access_key, "secret-key": secret_key},
+    )
+    juju.deploy("s3-integrator", app="s3-integrator", channel=_S3_INTEGRATOR_CHANNEL)
+    juju.deploy("tempo-worker-k8s", app="tempo-worker", channel=_TEMPO_WORKER_CHANNEL, trust=True)
+    juju.deploy(
+        "tempo-coordinator-k8s", app="tempo", channel=_TEMPO_COORDINATOR_CHANNEL, trust=True
+    )
+
+    juju.wait(
+        lambda status: (
+            jubilant.all_active(status, "minio") and jubilant.all_blocked(status, "s3-integrator")
+        ),
+        timeout=600,
+        delay=10,
+    )
+
+    status = juju.status()
+    minio_addr = status.apps["minio"].units["minio/0"].address
+    mc_client = Minio(
+        f"{minio_addr}:9000",
+        access_key=access_key,
+        secret_key=secret_key,
+        secure=False,
+    )
+    if not mc_client.bucket_exists(bucket):
+        mc_client.make_bucket(bucket)
+
+    model_name = status.model.name
+    minio_hostname = f"minio-0.minio-endpoints.{model_name}.svc.cluster.local"
+    juju.config("s3-integrator", {"endpoint": f"{minio_hostname}:9000", "bucket": bucket})
+    juju.run(
+        "s3-integrator/leader",
+        "sync-s3-credentials",
+        {"access-key": access_key, "secret-key": secret_key},
+    )
+
+    juju.integrate("tempo:s3", "s3-integrator:s3-credentials")
+    juju.integrate("tempo:tempo-cluster", "tempo-worker:tempo-cluster")
+
+    juju.wait(
+        lambda status: jubilant.all_active(status, "tempo", "tempo-worker"),
+        timeout=600,
+        delay=10,
+    )
+    logger.info("tracing stack is active")
+
+
+def test_tracing_integration(juju: jubilant.Juju) -> None:
+    """Integrate bingo with Tempo over the tracing relation.
+
+    arrange: deploy a minio-backed tempo-coordinator-k8s/tempo-worker-k8s stack.
+    act: integrate bingo:tracing with tempo:tracing.
+    assert: both bingo and tempo settle to active with the relation established.
+    """
+    _deploy_tracing_stack(juju)
+
+    juju.integrate("bingo:tracing", "tempo:tracing")
+    juju.wait(
+        lambda status: jubilant.all_active(status, "bingo", "tempo"),
+        timeout=600,
+        delay=10,
+    )
+
+    status = juju.status()
+    assert status.apps["bingo"].relations.get("tracing"), "bingo:tracing relation not established"
+    logger.info("bingo:tracing relation is active")
