@@ -172,8 +172,8 @@ func TestPostgresRepository_Delete(t *testing.T) {
 		t.Fatalf("Create(): %v", err)
 	}
 
-	if err := repo.Delete(context.Background(), p.Key); err != nil {
-		t.Fatalf("Delete(): %v", err)
+	if delErr := repo.Delete(context.Background(), p.Key); delErr != nil {
+		t.Fatalf("Delete(): %v", delErr)
 	}
 
 	_, err = repo.GetByKey(context.Background(), p.Key)
@@ -230,6 +230,46 @@ func TestPostgresRepository_DeleteExpired(t *testing.T) {
 	// Live paste should survive
 	if _, err := repo.GetByKey(context.Background(), live.Key); err != nil {
 		t.Errorf("live paste deleted unexpectedly: %v", err)
+	}
+}
+
+func TestPostgresRepository_Create_queryError(t *testing.T) {
+	repo := requireDB(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // already-cancelled: insert must fail with a non-pg-collision error
+
+	_, err := repo.Create(ctx, paste.CreateParams{
+		Content:   "will fail",
+		Language:  "plaintext",
+		ExpiresIn: paste.ExpiresIn1d,
+	})
+	if err == nil {
+		t.Fatal("Create() with a cancelled context: want error, got nil")
+	}
+}
+
+func TestPostgresRepository_DeleteExpired_queryError(t *testing.T) {
+	repo := requireDB(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := repo.DeleteExpired(ctx)
+	if err == nil {
+		t.Fatal("DeleteExpired() with a cancelled context: want error, got nil")
+	}
+}
+
+func TestPostgresRepository_ListByOwner_queryError(t *testing.T) {
+	repo := requireDB(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := repo.ListByOwner(ctx, 1, 50)
+	if err == nil {
+		t.Fatal("ListByOwner() with a cancelled context: want error, got nil")
 	}
 }
 

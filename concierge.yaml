@@ -14,6 +14,11 @@ providers:
     addons:
       - hostpath-storage
       - dns
+      # traefik-k8s requests a LoadBalancer Service; without metallb, microk8s
+      # can't assign it an external IP, so traefik gets stuck in "blocked"
+      # ("unable to obtain an IP or hostname from the cluster") and never
+      # finishes wiring up ingress routes.
+      - metallb:10.64.140.43-10.64.140.49
 
 host:
   packages:

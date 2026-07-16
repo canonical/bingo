@@ -39,8 +39,8 @@ func run() error {
 	}
 	defer db.Close()
 
-	if err := database.Migrate(db); err != nil {
-		return fmt.Errorf("migrate database: %w", err)
+	if migrateErr := database.Migrate(db); migrateErr != nil {
+		return fmt.Errorf("migrate database: %w", migrateErr)
 	}
 	slog.Info("database migrations applied")
 

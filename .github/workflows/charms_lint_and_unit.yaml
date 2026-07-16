@@ -25,7 +25,7 @@ jobs:
           python-version: '3.12'
 
       - name: Install tox
-        run: pip install tox
+        run: pip install tox tox-uv
 
       - name: Run tox ${{ matrix.toxenv }}
         run: tox -e ${{ matrix.toxenv }}

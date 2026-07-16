@@ -26,13 +26,13 @@ exclude:
 
 x-pytest-args: &pytest-args
   pytest-arguments-template: |
-    --model testing
-    --keep-models
+    --juju-model testing
+    --no-juju-teardown
   pytest-environment-template: |
     SPREAD_JOB={{ env.get("SPREAD_JOB", "") }}
 
 integration-suites:
-  tests/integration/:
+  charm/tests/integration/:
     <<: *pytest-args
     working-dir: ./
     summary: bingo charm integration tests (MicroK8s)

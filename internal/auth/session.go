@@ -14,6 +14,10 @@ type Session struct {
 	UserID int64  `json:"user_id"`
 	Sub    string `json:"sub"`
 	Email  string `json:"email"`
+	// IDToken is the raw OIDC ID token issued at login. It is retained only
+	// so RP-initiated logout (see Provider.LogoutURL) can pass it back to
+	// the IdP as an id_token_hint; it is never used for authorization.
+	IDToken string `json:"id_token,omitempty"`
 }
 
 // Codec encodes and decodes Session values into encrypted, signed cookies.

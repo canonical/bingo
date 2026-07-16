@@ -4,6 +4,7 @@ import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import { tomorrow } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { PasteResponse } from '../../api/types'
 import { sanitizeContent, sanitizeTitle } from '../../utils/sanitize'
+import { getBasePath } from '../../utils/basePath'
 
 interface Props {
   paste: PasteResponse
@@ -105,7 +106,7 @@ export default function PasteViewer({ paste, onDelete }: Props) {
            </li>
            <li className="p-inline-list__item">
              <a
-               href="/"
+               href={`${getBasePath()}/`}
                className="p-button--base is-small"
                aria-label="New paste"
              >

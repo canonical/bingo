@@ -22,3 +22,10 @@ jobs:
     secrets: inherit
     with:
       working-directory: .
+      # canonical/bingo is a private/internal repo, so rock images pushed to
+      # GHCR (the "registry" default) inherit private visibility and the
+      # ephemeral test cluster's anonymous pull fails with 401 Unauthorized.
+      # "artifact" mode uploads the .rock as a GitHub Actions artifact instead
+      # and loads it directly into the test cluster, avoiding the registry
+      # pull entirely.
+      upload-image: artifact

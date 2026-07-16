@@ -1,6 +1,7 @@
 import { Navigation, Theme } from '@canonical/react-components'
 import { Link } from 'react-router-dom'
 import type { NavItem, GenerateLink } from '@canonical/react-components'
+import { getBasePath } from '../../utils/basePath'
 
 interface Props {
   isAuthenticated: boolean
@@ -11,12 +12,14 @@ interface Props {
 }
 
 // generateLink is called for items with a `url`. Use react-router Link for
-// internal paths; fall through to a plain <a> for /auth/* server routes.
+// internal paths (resolved against BrowserRouter's basename); fall through
+// to a plain <a> for /auth/* server routes, prefixed with the app's base
+// path since these are real navigations, not client-side routes.
 const generateLink: GenerateLink = ({ label, url, ...props }) => {
   if (url && !url.startsWith('/auth')) {
     return <Link to={url} {...(props as object)}>{label}</Link>
   }
-  return <a href={url} {...(props as object)}>{label}</a>
+  return <a href={url ? `${getBasePath()}${url}` : url} {...(props as object)}>{label}</a>
 }
 
 export default function AppNavigation({ isAuthenticated, userEmail, authEnabled = true }: Props) {

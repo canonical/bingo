@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { getMe } from '../../api/client'
+import { getBasePath } from '../../utils/basePath'
 
 type AuthState = 'loading' | 'ready'
 
@@ -19,7 +20,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     getMe()
       .then((me) => {
         if (me.auth_enabled && !me.authenticated) {
-          window.location.href = '/auth/login'
+          window.location.href = `${getBasePath()}/auth/login`
         } else {
           setState('ready')
         }

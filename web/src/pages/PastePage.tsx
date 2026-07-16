@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useParams, useNavigate, Link } from 'react-router-dom'
 import { Spinner, Notification } from '@canonical/react-components'
 import AppNavigation from '../components/Navigation/Navigation'
 import PasteViewer from '../components/PasteViewer/PasteViewer'
@@ -54,7 +54,7 @@ export default function PastePage() {
               {notFound && (
                 <p>
                   Paste not found or has expired.{' '}
-                  <a href="/">Create a new paste.</a>
+                  <Link to="/">Create a new paste.</Link>
                 </p>
               )}
               {error && (
