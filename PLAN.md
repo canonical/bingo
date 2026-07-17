@@ -200,7 +200,7 @@ Referencing `dpaste`[^1] as the conceptual baseline:
 - **Paste creation & retrieval:** Submit raw text with syntax highlighting metadata
   (language key), return a unique key via JSON, fetch paste content + metadata via
   JSON API.
-- **Unique key generation:** Base62, collision-resistant, starting at 4 chars; on
+- **Unique key generation:** Base62, collision-resistant, starting at 10 chars; on
   `UNIQUE` violation, retry with length + 1 (dpaste pattern).
 - **Expiration (mandatory):** Every paste expires. Allowed durations: `1d`, `1w`,
   `1mo`, `3mo` (default), `1y` (max). No keep-forever option.
