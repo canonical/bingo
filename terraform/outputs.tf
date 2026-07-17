@@ -13,13 +13,13 @@ output "requires" {
     oauth      = "oauth"
     tracing    = "tracing"
     ingress    = "ingress"
+    logging    = "logging"
   }
 }
 
 output "provides" {
   description = "Map of bingo's `provides` relation names to their endpoint names."
   value = {
-    logging           = "logging"
     metrics_endpoint  = "metrics-endpoint"
     grafana_dashboard = "grafana-dashboard"
   }
