@@ -1,0 +1,156 @@
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest'
+import { createPaste, getPaste, deletePaste, getLanguages, getMyPastes, getCSRFToken } from './client'
+import { isCreatePasteResponse, isPasteResponse, isMyPastesResponse } from './types'
+
+const mockFetch = vi.fn()
+beforeEach(() => { 
+  vi.stubGlobal('fetch', mockFetch)
+  mockFetch.mockClear()
+})
+afterEach(() => { vi.restoreAllMocks() })
+
+function jsonResponse(body: unknown, status = 200): Response {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: { 'Content-Type': 'application/json' },
+  })
+}
+
+describe('getLanguages', () => {
+  it('returns language array from API', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({ languages: ['python', 'go', 'text'] }))
+    const langs = await getLanguages()
+    expect(langs).toEqual(['python', 'go', 'text'])
+    expect(mockFetch).toHaveBeenCalledWith('api/v1/languages', expect.objectContaining({ method: 'GET' }))
+  })
+})
+
+describe('getPaste', () => {
+  it('returns paste response for valid key', async () => {
+    const body = {
+      key: 'abc12',
+      url: 'http://localhost/abc12',
+      raw_url: 'http://localhost/api/v1/pastes/abc12/raw',
+      content: 'hello world',
+      language: 'text',
+      size_bytes: 11,
+      expires_at: '2026-12-31T00:00:00Z',
+      created_at: '2026-06-30T00:00:00Z',
+    }
+    mockFetch.mockResolvedValue(jsonResponse(body))
+    const paste = await getPaste('abc12')
+    expect(paste!.key).toBe('abc12')
+    expect(paste!.content).toBe('hello world')
+  })
+
+  it('returns null on 204 No Content (paste absent or expired)', async () => {
+    mockFetch.mockResolvedValue(new Response(null, { status: 204 }))
+    const result = await getPaste('gone')
+    expect(result).toBeNull()
+  })
+
+  it('throws ApiRequestError when response shape is invalid', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({ bad: true }))
+    await expect(getPaste('abc12')).rejects.toMatchObject({ code: 'invalid_response' })
+  })
+})
+
+describe('createPaste', () => {
+  it('sends POST with correct body and returns 201 response', async () => {
+    const body = {
+      key: 'xyz99',
+      url: 'http://localhost/xyz99',
+      raw_url: 'http://localhost/api/v1/pastes/xyz99/raw',
+      language: 'python',
+      size_bytes: 13,
+      expires_at: '2026-12-31T00:00:00Z',
+      created_at: '2026-06-30T00:00:00Z',
+    }
+    mockFetch.mockResolvedValue(jsonResponse(body, 201))
+    const result = await createPaste({ content: 'print("hi")', language: 'python', expires_in: '1d' })
+    expect(result.key).toBe('xyz99')
+    const call = mockFetch.mock.calls[0]
+    expect(call[0]).toBe('api/v1/pastes')
+    const options = call[1] as RequestInit
+    expect(options.method).toBe('POST')
+    expect(JSON.parse(options.body as string)).toMatchObject({ language: 'python' })
+  })
+
+  it('includes Content-Type and X-CSRF-Token headers on POST', async () => {
+    Object.defineProperty(document, 'cookie', { value: 'csrf_token=tok123', configurable: true })
+    const body = {
+      key: 'xyz99', url: 'u', raw_url: 'r', language: 'python',
+      size_bytes: 1, expires_at: 'e', created_at: 'c',
+    }
+    mockFetch.mockResolvedValue(jsonResponse(body, 201))
+    await createPaste({ content: 'x', language: 'python', expires_in: '1d' })
+    const options = mockFetch.mock.calls[0][1] as RequestInit
+    const headers = options.headers as Record<string, string>
+    expect(headers['Content-Type']).toBe('application/json')
+    expect(headers['X-CSRF-Token']).toBe('tok123')
+  })
+
+  it('throws ApiRequestError when response shape is invalid', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({ unexpected: true }, 201))
+    await expect(
+      createPaste({ content: 'x', language: 'python', expires_in: '1d' })
+    ).rejects.toMatchObject({ code: 'invalid_response' })
+  })
+})
+
+describe('deletePaste', () => {
+  it('sends DELETE and resolves on 204', async () => {
+    mockFetch.mockResolvedValue(new Response(null, { status: 204 }))
+    await expect(deletePaste('abc12')).resolves.toBeUndefined()
+    expect(mockFetch).toHaveBeenCalledWith('api/v1/pastes/abc12', expect.objectContaining({ method: 'DELETE' }))
+  })
+})
+
+describe('getMyPastes', () => {
+  it('returns my-pastes response', async () => {
+    const body = { pastes: [], count: 0 }
+    mockFetch.mockResolvedValue(jsonResponse(body))
+    const result = await getMyPastes()
+    expect(result.count).toBe(0)
+    expect(result.pastes).toEqual([])
+  })
+
+  it('throws ApiRequestError when response shape is invalid', async () => {
+    mockFetch.mockResolvedValue(jsonResponse({ wrong: true }))
+    await expect(getMyPastes()).rejects.toMatchObject({ code: 'invalid_response' })
+  })
+})
+
+describe('getCSRFToken', () => {
+  it('returns null when csrf_token cookie is absent', () => {
+    Object.defineProperty(document, 'cookie', { value: '', configurable: true })
+    expect(getCSRFToken()).toBeNull()
+  })
+
+  it('returns token value from csrf_token cookie', () => {
+    Object.defineProperty(document, 'cookie', {
+      value: 'csrf_token=abc123; other=x',
+      configurable: true,
+    })
+    expect(getCSRFToken()).toBe('abc123')
+  })
+})
+
+describe('type guards', () => {
+  it('isCreatePasteResponse: true for valid object without content', () => {
+    const obj = { key: 'a', url: 'u', raw_url: 'r', language: 'text', size_bytes: 1, expires_at: 'e', created_at: 'c' }
+    expect(isCreatePasteResponse(obj)).toBe(true)
+  })
+  it('isCreatePasteResponse: false when content present', () => {
+    expect(isCreatePasteResponse({ key: 'a', url: 'u', raw_url: 'r', language: 'text', content: 'x', size_bytes: 1, expires_at: 'e', created_at: 'c' })).toBe(false)
+  })
+  it('isPasteResponse: true for valid object with content', () => {
+    expect(isPasteResponse({ key: 'a', url: 'u', raw_url: 'r', content: 'hi', language: 'text', size_bytes: 2, expires_at: 'e', created_at: 'c' })).toBe(true)
+  })
+  it('isMyPastesResponse: true for { pastes: [], count: 0 }', () => {
+    expect(isMyPastesResponse({ pastes: [], count: 0 })).toBe(true)
+  })
+  it('isMyPastesResponse: false for non-object', () => {
+    expect(isMyPastesResponse(null)).toBe(false)
+  })
+})
