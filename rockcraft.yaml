@@ -1,0 +1,42 @@
+# rockcraft.yaml — OCI rock for the bingo Go application.
+# Built by: rockcraft pack
+# Reference: https://documentation.ubuntu.com/rockcraft/en/stable/reference/extensions/go-framework
+name: bingo
+base: ubuntu@24.04
+version: '0.1'
+summary: Canonical Pastebin — Go + React OCI image
+description: |
+  bingo replaces paste.canonical.com on Prodstack 7. Ships the Go API binary
+  and the Vite-built React frontend as a single 12-Factor compliant OCI image.
+platforms:
+  amd64:
+
+extensions:
+  - go-framework
+
+parts:
+  go-framework/install-app:
+    # Pin the Go version explicitly.
+    build-snaps:
+      - go/1.25/stable
+    # main package lives at cmd/bingo/, not at the module root — override build.
+    override-build: |
+      go build -o bin/bingo ./cmd/bingo
+      install -Dm755 bin/bingo "${CRAFT_PART_INSTALL}/bin/bingo"
+    organize:
+      bin/bingo: usr/local/bin/bingo
+
+  go-framework/assets:
+    build-snaps:
+      - node/20/stable
+    override-build: |
+      craftctl default
+      # Build the Vite frontend for production.
+      cd ${CRAFT_PART_INSTALL}/web
+      npm install
+      npm run build
+    # Stage the Vite production build as static assets.
+    # The go-framework extension places staged files under /app/ in the container.
+    # WEB_DIR=/app/web/dist is set by the charm config option (see charmcraft.yaml).
+    stage:
+      - app/web/dist

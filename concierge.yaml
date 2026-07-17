@@ -1,0 +1,25 @@
+# concierge.yaml — environment provisioning for charm integration tests.
+# Bootstraps MicroK8s and Juju 3.6 for k8s charm deployment.
+# Reference: https://github.com/canonical/charm-ci/examples/concierge-microk8s.yaml
+juju:
+  channel: 3.6/stable
+  model-defaults:
+    test-mode: "true"
+    automatically-retry-hooks: "false"
+
+providers:
+  microk8s:
+    enable: true
+    bootstrap: true
+    addons:
+      - hostpath-storage
+      - dns
+      # traefik-k8s requests a LoadBalancer Service; without metallb, microk8s
+      # can't assign it an external IP, so traefik gets stuck in "blocked"
+      # ("unable to obtain an IP or hostname from the cluster") and never
+      # finishes wiring up ingress routes.
+      - metallb:10.64.140.43-10.64.140.49
+
+host:
+  packages:
+    - skopeo

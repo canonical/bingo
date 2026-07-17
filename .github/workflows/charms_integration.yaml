@@ -1,0 +1,30 @@
+# charms_integration.yaml — Charm integration CI.
+# Delegates to charm-ci integration-test.yml which builds the rock + charm,
+# then runs spread integration suites defined in spread.yaml via opcli.
+# Reference: https://github.com/canonical/charm-ci/.github/workflows/integration-test.yml
+name: Charm Integration Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  integration-test:
+    name: Integration Tests
+    uses: canonical/charm-ci/.github/workflows/integration-test.yml@main
+    permissions:
+      contents: read
+      packages: write
+      actions: read
+    secrets: inherit
+    with:
+      working-directory: .
+      # canonical/bingo is a private/internal repo, so rock images pushed to
+      # GHCR (the "registry" default) inherit private visibility and the
+      # ephemeral test cluster's anonymous pull fails with 401 Unauthorized.
+      # "artifact" mode uploads the .rock as a GitHub Actions artifact instead
+      # and loads it directly into the test cluster, avoiding the registry
+      # pull entirely.
+      upload-image: artifact

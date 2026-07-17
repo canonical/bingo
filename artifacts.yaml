@@ -1,0 +1,23 @@
+# artifacts.yaml — charm-ci build manifest.
+# Defines 1 rock and 1 charm; the rock is bound as the app-image OCI resource.
+# Reference: https://github.com/canonical/charm-ci
+version: 1
+
+rocks:
+  - name: bingo
+    rockcraft-yaml: rockcraft.yaml
+    platforms:
+      - arch: amd64
+
+charms:
+  - name: bingo
+    charmcraft-yaml: charm/charmcraft.yaml
+    channel: latest/edge
+    resources:
+      app-image:
+        type: oci-image
+        rock: bingo
+    platforms:
+      - arch: amd64
+
+snaps: []

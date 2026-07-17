@@ -1,0 +1,42 @@
+# spread.yaml — charm-ci test orchestration.
+# Drives the integration test matrix via the 'integration-test' virtual backend.
+# Reference: https://github.com/canonical/charm-ci/examples/spread.yaml
+project: bingo
+path: /home/ubuntu/proj
+kill-timeout: 60m
+warn-timeout: 5m
+
+backends:
+  integration-test:
+    type: integration-test
+    systems:
+      - ubuntu-24.04
+
+environment:
+  CONCIERGE: '$(HOST: echo "${CONCIERGE:-concierge.yaml}")'
+  OPCLI_GIT_REF: '$(HOST: echo "${OPCLI_GIT_REF:-main}")'
+
+exclude:
+  - .git
+  - .tox
+  - .venv
+  - .worktrees
+  - web/node_modules
+  - web/dist
+
+x-pytest-args: &pytest-args
+  pytest-arguments-template: |
+    --juju-model testing
+    --no-juju-teardown
+  pytest-environment-template: |
+    SPREAD_JOB={{ env.get("SPREAD_JOB", "") }}
+
+integration-suites:
+  charm/tests/integration/:
+    <<: *pytest-args
+    working-dir: ./
+    summary: bingo charm integration tests (MicroK8s)
+    backends:
+      - integration-test
+    environment:
+      CONCIERGE: concierge.yaml
