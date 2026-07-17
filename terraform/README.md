@@ -74,8 +74,11 @@ bundles some of these):
   interface (optional).
 - An ingress provider (e.g. Traefik) reachable over the `ingress` interface
   (optional, needed for external HTTP access).
-- Observability integrations (Loki logging, Prometheus metrics-endpoint,
-  Grafana dashboards) are all optional and provided by bingo, not required.
+- A Loki-compatible log aggregator reachable over the `logging` (`loki_push_api`)
+  interface (optional — bingo pushes logs to it, so no external input is
+  required for the app to function without it).
+- Prometheus metrics-endpoint and Grafana dashboard integrations are optional
+  and provided by bingo (bingo is the data source; no external input needed).
 
 ## Using the bingo base module in higher-level modules
 
