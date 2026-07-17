@@ -109,7 +109,9 @@ def _deploy_identity_bundle(juju: jubilant.Juju) -> None:
         logger.info("identity bundle already deployed")
         return
 
-    juju.deploy("hydra", channel=_HYDRA_CHANNEL, trust=True)
+    # dev=True disables hydra's HTTPS-only public ingress requirement; the test's
+    # traefik-k8s doesn't terminate TLS, so hydra would otherwise stay "blocked".
+    juju.deploy("hydra", channel=_HYDRA_CHANNEL, trust=True, config={"dev": True})
     juju.deploy("kratos", channel=_KRATOS_CHANNEL, trust=True)
     juju.deploy("identity-platform-login-ui-operator", channel=_LOGIN_UI_CHANNEL, trust=True)
 
