@@ -94,17 +94,23 @@ output "requires" {
     oauth      = "oauth"
     tracing    = "tracing"
     ingress    = "ingress"
+    logging    = "logging"
   }
 }
 
 output "provides" {
   value = {
-    logging           = "logging"
     metrics_endpoint  = "metrics-endpoint"
     grafana_dashboard = "grafana-dashboard"
   }
 }
 ```
+
+Note: `logging` (interface `loki_push_api`) is a `requires` relation, not
+`provides` — confirmed against `charmcraft/extensions/app.py`'s go-framework
+extension, which declares `requires: {logging, ingress}` and
+`provides: {metrics-endpoint, grafana-dashboard}`. bingo requires a Loki
+endpoint to push logs to, the same way it requires an ingress endpoint.
 
 These maps let a caller build `juju_integration` blocks (`endpoint =
 module.bingo.requires.postgresql`) without hardcoding or guessing endpoint names.

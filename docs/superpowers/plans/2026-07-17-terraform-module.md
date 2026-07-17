@@ -38,8 +38,11 @@ external cross-model offers.
   logging, metrics-endpoint, and grafana-dashboard are offer-URL-only — no
   charm is bundled for them.
 - Relation endpoint names (from `charm/charmcraft.yaml` and the go-framework
-  extension): requires = `postgresql`, `oauth`, `tracing`, `ingress`; provides =
-  `logging`, `metrics-endpoint`, `grafana-dashboard`.
+  extension, confirmed against `charmcraft/extensions/app.py`): requires =
+  `postgresql`, `oauth`, `tracing`, `ingress`, `logging`; provides =
+  `metrics-endpoint`, `grafana-dashboard`. Note `logging` (interface
+  `loki_push_api`) and `ingress` are both `requires`, not `provides` — bingo
+  requires a Loki/ingress endpoint to push logs to / receive traffic through.
 - `juju_integration` `application` blocks use either `{ name, endpoint }` (local
   app) or `{ offer_url }` alone (no `endpoint` field when using `offer_url`).
 
@@ -59,8 +62,9 @@ external cross-model offers.
   `"ubuntu@24.04"`), `channel` (string, default `"latest/edge"`), `revision`
   (number, default `null`), `config` (map(string), default `{}`), `constraints`
   (string, default `""`), `units` (number, default `1`); outputs `app_name`,
-  `requires` (map with keys `postgresql`, `oauth`, `tracing`, `ingress`),
-  `provides` (map with keys `logging`, `metrics_endpoint`, `grafana_dashboard`).
+  `requires` (map with keys `postgresql`, `oauth`, `tracing`, `ingress`,
+  `logging`), `provides` (map with keys `metrics_endpoint`,
+  `grafana_dashboard`).
 
 - [ ] **Step 1: Install `terraform` and `tflint` CLIs (if not already present)**
 
@@ -196,13 +200,13 @@ output "requires" {
     oauth      = "oauth"
     tracing    = "tracing"
     ingress    = "ingress"
+    logging    = "logging"
   }
 }
 
 output "provides" {
   description = "Map of bingo's `provides` relation names to their endpoint names."
   value = {
-    logging           = "logging"
     metrics_endpoint  = "metrics-endpoint"
     grafana_dashboard = "grafana-dashboard"
   }
@@ -422,8 +426,8 @@ https://charmhub.io/bingo/configurations once published):
 | Name | Description |
 |---|---|
 | `app_name` | Name of the deployed bingo application. |
-| `requires` | Map of bingo's `requires` relations to endpoint names: `postgresql`, `oauth`, `tracing`, `ingress`. `postgresql` is required for the app to function; `oauth`, `tracing`, and `ingress` are optional. |
-| `provides` | Map of bingo's `provides` relations to endpoint names: `logging`, `metrics_endpoint` (endpoint name `metrics-endpoint`), `grafana_dashboard` (endpoint name `grafana-dashboard`). All optional. |
+| `requires` | Map of bingo's `requires` relations to endpoint names: `postgresql`, `oauth`, `tracing`, `ingress`, `logging`. `postgresql` is required for the app to function; `oauth`, `tracing`, `ingress`, and `logging` are optional. |
+| `provides` | Map of bingo's `provides` relations to endpoint names: `metrics_endpoint` (endpoint name `metrics-endpoint`), `grafana_dashboard` (endpoint name `grafana-dashboard`). All optional. |
 
 ## External inputs this module does not manage
 
@@ -500,8 +504,8 @@ git commit -m "docs: add bingo base terraform module README"
 
 **Interfaces:**
 - Consumes: base module at `../` — `module.bingo.app_name`,
-  `module.bingo.requires.{postgresql,oauth,tracing,ingress}`,
-  `module.bingo.provides.{logging,metrics_endpoint,grafana_dashboard}`.
+  `module.bingo.requires.{postgresql,oauth,tracing,ingress,logging}`,
+  `module.bingo.provides.{metrics_endpoint,grafana_dashboard}`.
 - Produces: outputs `model_name` (string), `bingo` (object with `app_name` and
   `requires`), `postgresql_app_name` (string or null),
   `oauth_app_name` (string or null), `ingress_app_name` (string or null).
@@ -779,7 +783,7 @@ resource "juju_integration" "bingo_logging" {
 
   application {
     name     = module.bingo.app_name
-    endpoint = module.bingo.provides.logging
+    endpoint = module.bingo.requires.logging
   }
 
   application {
