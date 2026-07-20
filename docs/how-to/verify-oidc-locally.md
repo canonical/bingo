@@ -1,3 +1,5 @@
+(how_to_verify_oidc_locally)=
+
 # How to verify OIDC authentication locally on a deployed bingo charm
 
 This is a manual, one-off verification procedure — not an automated test. It

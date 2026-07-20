@@ -67,3 +67,9 @@ Required relations:
 * [Issues](https://github.com/canonical/bingo/issues)
 * [Contributing](CONTRIBUTING.md)
 * [Matrix](https://matrix.to/#/#charmhub-charmdev:ubuntu.com)
+
+### Documentation
+
+Full documentation, including tutorials, how-to guides, reference material, and
+explanations, will be published on [Read the Docs](https://canonical-bingo-charm.readthedocs-hosted.com/)
+once the project is set up.
