@@ -41,7 +41,7 @@ This documentation uses the [Diátaxis documentation structure](https://diataxis
   relations, and other technical details.
 - {ref}`Explanation <explanation_index>` includes topic overviews, background and context
   and detailed discussion.
-- {ref}`Release notes <release_notes_index>` holds all the release notes for the charm,
+- {ref}`Changelog <changelog>` holds all the release history for the charm,
   including any system or upgrade requirements.
 
 ### Contributing to this documentation
@@ -72,7 +72,7 @@ feedback.
 
 ### Releases
 
-- {ref}`Release notes <release_notes_index>`
+- {ref}`Changelog <changelog>`
 
 Thinking about using the bingo Operator for your next project?
 [Get in touch](https://matrix.to/#/#charmhub-charmdev:ubuntu.com)!
@@ -81,9 +81,9 @@ Thinking about using the bingo Operator for your next project?
 :hidden:
 :maxdepth: 1
 
-Tutorial <tutorial/index>
+tutorial/index
 how-to/index
 reference/index
 explanation/index
-release-notes/index
+changelog
 ```

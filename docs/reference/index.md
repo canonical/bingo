@@ -10,8 +10,3 @@ myst:
 
 This section documents the bingo charm's actions, configuration options, and integration
 interfaces in detail.
-
-```{toctree}
-:maxdepth: 1
-
-```
