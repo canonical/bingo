@@ -34,10 +34,8 @@ copyright = f"{datetime.date.today().year}"
 html_title = project + " documentation"
 
 # Documentation website URL
-# TODO(RTD-setup): Replace this placeholder with the real RTD project URL once
-# Task 7's manual project creation is completed.
 ogp_site_url = os.environ.get(
-    "READTHEDOCS_CANONICAL_URL", "https://canonical-bingo-charm.readthedocs-hosted.com/"
+    "READTHEDOCS_CANONICAL_URL", "https://canonical-bingo.readthedocs-hosted.com/"
 )
 
 # Preview name of the documentation website
@@ -115,9 +113,7 @@ html_theme_options = {
 # Project slug
 # TODO: If your documentation is hosted on https://documentation.ubuntu.com/,
 #       uncomment and set to the RTD slug.
-# TODO(RTD-setup): Replace this placeholder with the real RTD project slug once
-# Task 7's manual project creation is completed.
-slug = "bingo-charm"
+slug = "canonical-bingo"
 
 #######################
 # Sitemap configuration: https://sphinx-sitemap.readthedocs.io/
