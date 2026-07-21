@@ -70,10 +70,9 @@ Required relations:
 
 ## Documentation
 
-<!-- TODO(RTD-setup): update the Read the Docs link below once the RTD project has been created (see docs/conf.py TODOs). -->
 Our documentation is stored in the `docs` directory.
 It is based on the Canonical starter pack
-and hosted on [Read the Docs](https://canonical-bingo-charm.readthedocs-hosted.com/). In structuring,
+and hosted on [Read the Docs](https://canonical-bingo.readthedocs-hosted.com/latest/). In structuring,
 the documentation employs the [Diátaxis](https://diataxis.fr/) approach.
 
 You may open a pull request with your documentation changes, or you can

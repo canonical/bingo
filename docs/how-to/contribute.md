@@ -13,8 +13,7 @@ See [CONTRIBUTING.md](https://github.com/canonical/bingo/blob/main/CONTRIBUTING.
 for information on contributing to the source code.
 ```
 
-<!-- TODO(RTD-setup): confirm the Read the Docs link below once the RTD project has been created. -->
-Our documentation is hosted on [Read the Docs](https://canonical-bingo-charm.readthedocs-hosted.com/)
+Our documentation is hosted on [Read the Docs](https://canonical-bingo.readthedocs-hosted.com/latest/)
 to enable collaboration. Please use the links on each documentation page to either
 directly change something you see that's wrong, ask a question, or make a suggestion
 about a potential change.

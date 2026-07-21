@@ -13,7 +13,7 @@ description: |
   bingo is a 12-Factor Go application providing paste creation, retrieval,
   expiry, optional OIDC authentication (Canonical Identity Platform), and a
   React frontend styled with Canonical's Vanilla Framework / Pragma components.
-documentation: https://canonical-bingo-charm.readthedocs-hosted.com/
+documentation: https://canonical-bingo.readthedocs-hosted.com/latest/
 
 extensions:
   - go-framework
