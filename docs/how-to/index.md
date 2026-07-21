@@ -14,6 +14,5 @@ using, maintaining, and contributing to the charm.
 ```{toctree}
 :maxdepth: 1
 
-verify-oidc-locally
 contribute
 ```
