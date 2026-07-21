@@ -68,8 +68,32 @@ Required relations:
 * [Contributing](CONTRIBUTING.md)
 * [Matrix](https://matrix.to/#/#charmhub-charmdev:ubuntu.com)
 
-### Documentation
+## Documentation
 
-Full documentation, including tutorials, how-to guides, reference material, and
-explanations, will be published on [Read the Docs](https://canonical-bingo-charm.readthedocs-hosted.com/)
-once the project is set up.
+<!-- TODO(RTD-setup): update the Read the Docs link below once the RTD project has been created (see docs/conf.py TODOs). -->
+Our documentation is stored in the `docs` directory.
+It is based on the Canonical starter pack
+and hosted on [Read the Docs](https://canonical-bingo-charm.readthedocs-hosted.com/). In structuring,
+the documentation employs the [Diátaxis](https://diataxis.fr/) approach.
+
+You may open a pull request with your documentation changes, or you can
+[file a bug](https://github.com/canonical/bingo/issues) to provide constructive feedback or suggestions.
+
+To run the documentation locally before submitting your changes:
+
+```bash
+cd docs
+make run
+```
+
+GitHub runs automatic checks on the documentation
+to verify spelling, validate links and style guide compliance.
+
+You can (and should) run the same checks locally:
+
+```bash
+make spelling
+make linkcheck
+make vale
+make lint-md
+```
