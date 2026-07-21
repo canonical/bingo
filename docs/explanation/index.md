@@ -9,8 +9,3 @@ myst:
 # Explanation
 
 This section discusses the bingo charm's architecture, design decisions, and background context.
-
-```{toctree}
-:maxdepth: 1
-
-```
