@@ -32,8 +32,7 @@ to provide constructive feedback or suggestions.
    cd docs
    make run
    ```
-4. Open a pull request. The `automatic-doc-checks.yml`, `markdown-style-checks.yml`, and
-   `check-removed-urls.yml` workflows will validate your changes.
+4. Open a pull request. The `docs_rtd.yaml` workflow will validate your changes.
 
 ## AI usage
 
