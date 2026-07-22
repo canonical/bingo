@@ -13,16 +13,19 @@ let inFlight: Promise<MeResponse> | null = null
  * Fetches GET /api/v1/me, caching the result module-wide. Rejections are
  * propagated (not swallowed here) so callers such as AuthGuard can inspect
  * the error — e.g. to distinguish a real HTTP error response from a network
- * failure. Note that a rejection is cached as-is: it is not retried on
- * subsequent calls within the same page load.
+ * failure. A failed fetch is not cached: the next call retries it.
  */
 export function fetchMe(): Promise<MeResponse> {
   if (cachedMe !== null) return Promise.resolve(cachedMe)
   if (!inFlight) {
-    inFlight = getMe().then((me) => {
-      cachedMe = me
-      return me
-    })
+    inFlight = getMe()
+      .then((me) => {
+        cachedMe = me
+        return me
+      })
+      .finally(() => {
+        inFlight = null
+      })
   }
   return inFlight
 }
