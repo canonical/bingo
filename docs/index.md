@@ -69,10 +69,6 @@ feedback.
 - [Join our online chat](https://matrix.to/#/#charmhub-charmdev:ubuntu.com)
 - {ref}`Contribute <how_to_contribute>`
 
-### Releases
-
-- {ref}`Changelog <changelog>`
-
 Thinking about using the bingo Operator for your next project?
 [Get in touch](https://matrix.to/#/#charmhub-charmdev:ubuntu.com)!
 
