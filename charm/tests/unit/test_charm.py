@@ -52,3 +52,33 @@ def test_config_changed_invalid_log_level(ctx: testing.Context) -> None:
     state_out = ctx.run(ctx.on.config_changed(), state_in)
     # The charm may either block or log a warning — it must not crash.
     assert state_out.unit_status.name in ("waiting", "blocked", "active", "maintenance")
+
+
+def test_config_changed_oauth_redirect_path_overridden_blocks(ctx: testing.Context) -> None:
+    """Changing oauth-redirect-path away from /auth/callback must block the charm.
+
+    The Go app's callback route is hardcoded to /auth/callback and never reads
+    this config, so any other value would register a callback with the identity
+    provider that the app doesn't serve, silently breaking login.
+    """
+    container = testing.Container("app", can_connect=True)
+    state_in = testing.State(
+        containers={container},
+        config={"oauth-redirect-path": "/callback"},
+    )
+    state_out = ctx.run(ctx.on.config_changed(), state_in)
+    assert state_out.unit_status.name == "blocked"
+    assert "oauth-redirect-path" in state_out.unit_status.message
+
+
+def test_config_changed_oauth_redirect_path_default_not_blocked_by_guard(
+    ctx: testing.Context,
+) -> None:
+    """The default oauth-redirect-path value must not trigger the guard."""
+    container = testing.Container("app", can_connect=True)
+    state_in = testing.State(containers={container})
+    state_out = ctx.run(ctx.on.config_changed(), state_in)
+    # Other reasons (e.g. missing postgresql) may still leave it non-active,
+    # but it must not be blocked specifically for oauth-redirect-path.
+    if state_out.unit_status.name == "blocked":
+        assert "oauth-redirect-path" not in state_out.unit_status.message

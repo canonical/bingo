@@ -58,9 +58,13 @@ config:
     oauth-redirect-path:
       type: string
       description: |
-        Path appended to base-url to build the OIDC callback redirect URI
-        registered with the identity provider over the oauth relation. Must
-        match the Go app's callback route (/auth/callback).
+        Fixed path appended to base-url to build the OIDC callback redirect
+        URI registered with the identity provider over the oauth relation.
+        This is NOT meant to be changed: the Go app's callback route is
+        hardcoded to /auth/callback and does not read this config, so any
+        other value will register a callback with the identity provider
+        that the app never serves, breaking login. Present only to satisfy
+        paas_charm's relation wiring default.
       default: /auth/callback
     oauth-scopes:
       type: string
