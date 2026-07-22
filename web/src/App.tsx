@@ -3,6 +3,7 @@ import AuthGuard from './components/AuthGuard/AuthGuard'
 import HomePage from './pages/HomePage'
 import PastePage from './pages/PastePage'
 import MyPastesPage from './pages/MyPastesPage'
+import ErrorPage from './pages/ErrorPage'
 
 export default function App() {
   return (
@@ -11,6 +12,7 @@ export default function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/my-pastes" element={<MyPastesPage />} />
+          <Route path="/error" element={<ErrorPage />} />
           <Route path="/:key" element={<PastePage />} />
         </Routes>
       </div>
