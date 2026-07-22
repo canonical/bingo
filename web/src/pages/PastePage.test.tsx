@@ -43,9 +43,8 @@ describe('PastePage', () => {
     await waitFor(() => expect(screen.getByText(/print/)).toBeInTheDocument())
   })
 
-  it('shows not-found message on 404', async () => {
-    const { ApiRequestError } = await import('../api/types')
-    vi.mocked(client.getPaste).mockRejectedValue(new ApiRequestError(404, 'paste_not_found', 'not found'))
+  it('shows not-found message on 204 (paste absent or expired)', async () => {
+    vi.mocked(client.getPaste).mockResolvedValue(null)
     renderPastePage('nope')
     await waitFor(() => expect(screen.getByText(/not found/i)).toBeInTheDocument())
   })
