@@ -103,3 +103,13 @@ export function isMyPastesResponse(obj: unknown): obj is MyPastesResponse {
   const o = obj as Record<string, unknown>
   return Array.isArray(o.pastes) && typeof o.count === 'number'
 }
+
+export function isMeResponse(obj: unknown): obj is MeResponse {
+  if (typeof obj !== 'object' || obj === null) return false
+  const o = obj as Record<string, unknown>
+  return (
+    typeof o.auth_enabled === 'boolean' &&
+    typeof o.authenticated === 'boolean' &&
+    (o.email === undefined || typeof o.email === 'string')
+  )
+}
