@@ -2,10 +2,11 @@ import { useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import AppNavigation from '../components/Navigation/Navigation'
 import MyPastesList from '../components/MyPastesList/MyPastesList'
+import { useMe } from '../hooks/useMe'
 
 export default function MyPastesPage() {
   const navigate = useNavigate()
-  const isAuthenticated = document.cookie.includes('csrf_token=')
+  const { authenticated: isAuthenticated, email } = useMe()
 
   useEffect(() => {
     if (!isAuthenticated) navigate('/')
@@ -15,7 +16,7 @@ export default function MyPastesPage() {
 
   return (
     <>
-      <AppNavigation isAuthenticated userEmail={undefined} />
+      <AppNavigation isAuthenticated userEmail={email} />
       <main className="l-main">
         <section className="p-strip is-shallow">
           <div className="row">

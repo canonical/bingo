@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { getMe } from '../../api/client'
+import { fetchMe } from '../../hooks/useMe'
 import { ApiRequestError } from '../../api/types'
 import { getBasePath } from '../../utils/basePath'
 
@@ -23,7 +23,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   const [state, setState] = useState<AuthState>('loading')
 
   useEffect(() => {
-    getMe()
+    fetchMe()
       .then((me) => {
         if (me.auth_enabled && !me.authenticated) {
           window.location.href = `${getBasePath()}/auth/login`
