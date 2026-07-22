@@ -12,7 +12,10 @@ const alphabet = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz
 func TestGenerateKey_length(t *testing.T) {
 	for _, n := range []int{4, 5, 8, 32} {
 		t.Run("len"+string(rune('0'+n)), func(t *testing.T) {
-			got := key.GenerateKey(n)
+			got, err := key.GenerateKey(n)
+			if err != nil {
+				t.Fatalf("GenerateKey(%d) returned error: %v", n, err)
+			}
 			if len(got) != n {
 				t.Errorf("GenerateKey(%d) length = %d, want %d", n, len(got), n)
 			}
@@ -22,7 +25,10 @@ func TestGenerateKey_length(t *testing.T) {
 
 func TestGenerateKey_charset(t *testing.T) {
 	for range 100 {
-		k := key.GenerateKey(16)
+		k, err := key.GenerateKey(16)
+		if err != nil {
+			t.Fatalf("GenerateKey(16) returned error: %v", err)
+		}
 		for i, c := range k {
 			if !strings.ContainsRune(alphabet, c) {
 				t.Errorf("GenerateKey(16)[%d] = %q, not in base62 alphabet", i, c)
@@ -34,7 +40,10 @@ func TestGenerateKey_charset(t *testing.T) {
 func TestGenerateKey_uniqueness(t *testing.T) {
 	seen := make(map[string]bool, 1000)
 	for range 1000 {
-		k := key.GenerateKey(8)
+		k, err := key.GenerateKey(8)
+		if err != nil {
+			t.Fatalf("GenerateKey(8) returned error: %v", err)
+		}
 		if seen[k] {
 			t.Errorf("GenerateKey(8) produced duplicate: %q", k)
 		}

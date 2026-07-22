@@ -29,7 +29,10 @@ func (r *PostgresRepository) Create(ctx context.Context, params CreateParams) (*
 	keyLen := 10
 
 	for range 10 {
-		k := key.GenerateKey(keyLen)
+		k, err := key.GenerateKey(keyLen)
+		if err != nil {
+			return nil, fmt.Errorf("generate key: %w", err)
+		}
 		p, err := r.insert(ctx, k, expiresAt, params)
 		if err == nil {
 			return p, nil

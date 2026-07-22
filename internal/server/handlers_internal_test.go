@@ -122,6 +122,22 @@ func TestDeletePaste_authEnabled_missingCSRF_403(t *testing.T) {
 	}
 }
 
+func TestLogout_authEnabled_missingCSRF_403(t *testing.T) {
+	s := newCSRFTestServer(t, nil)
+
+	r := httptest.NewRequest(http.MethodPost, "/auth/logout", nil)
+
+	// No X-CSRF-Token header and no csrf_token cookie → should be rejected,
+	// same as any other state-changing endpoint.
+	w := httptest.NewRecorder()
+
+	s.handleLogout(w, r)
+
+	if w.Code != http.StatusForbidden {
+		t.Errorf("logout missing CSRF: status = %d, want 403", w.Code)
+	}
+}
+
 func TestCreatePaste_authEnabled_unauthenticated_401(t *testing.T) {
 	s := newCSRFTestServer(t, &stubRepoWithCreate{})
 

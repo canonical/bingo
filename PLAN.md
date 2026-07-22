@@ -422,8 +422,8 @@ are redirected to `/auth/login` before any application content is shown.
 
 6. **"My pastes"** view lists the authenticated user's own pastes.
 
-7. **Logout** — `GET /auth/logout` clears the session and CSRF cookies and redirects
-   to `/`, which immediately redirects back to `/auth/login`.
+7. **Logout** — `POST /auth/logout` (CSRF-protected) clears the session and CSRF
+   cookies and redirects to `/`, which immediately redirects back to `/auth/login`.
 
 ---
 

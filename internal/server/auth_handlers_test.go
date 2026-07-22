@@ -72,9 +72,9 @@ func TestLogout_authDisabled(t *testing.T) {
 			return http.ErrUseLastResponse
 		},
 	}
-	resp, err := client.Get(ts.URL + "/auth/logout")
+	resp, err := client.Post(ts.URL+"/auth/logout", "", nil)
 	if err != nil {
-		t.Fatalf("GET /auth/logout: %v", err)
+		t.Fatalf("POST /auth/logout: %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -93,9 +93,9 @@ func TestLogout_clearsCSRFCookie(t *testing.T) {
 			return http.ErrUseLastResponse
 		},
 	}
-	resp, err := client.Get(ts.URL + "/auth/logout")
+	resp, err := client.Post(ts.URL+"/auth/logout", "", nil)
 	if err != nil {
-		t.Fatalf("GET /auth/logout: %v", err)
+		t.Fatalf("POST /auth/logout: %v", err)
 	}
 	defer resp.Body.Close()
 
@@ -179,14 +179,16 @@ func TestLogout_redirectsToIdPEndSessionEndpoint(t *testing.T) {
 			return http.ErrUseLastResponse
 		},
 	}
-	req, err := http.NewRequest(http.MethodGet, ts.URL+"/auth/logout", nil)
+	req, err := http.NewRequest(http.MethodPost, ts.URL+"/auth/logout", nil)
 	if err != nil {
 		t.Fatalf("NewRequest() error = %v", err)
 	}
 	req.AddCookie(sessionCookie)
+	req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "test-csrf-token"})
+	req.Header.Set("X-CSRF-Token", "test-csrf-token")
 	resp, err := client.Do(req)
 	if err != nil {
-		t.Fatalf("GET /auth/logout: %v", err)
+		t.Fatalf("POST /auth/logout: %v", err)
 	}
 	defer resp.Body.Close()
 

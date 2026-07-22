@@ -115,8 +115,34 @@ func Load() (*Config, error) {
 	if oidcCount == 4 && cfg.SessionSecret == "" {
 		return nil, fmt.Errorf("SESSION_SECRET is required when OIDC is configured")
 	}
+	if oidcCount == 4 {
+		if err := validateAbsoluteURL("OIDC issuer URL", cfg.OIDCIssuerURL); err != nil {
+			return nil, err
+		}
+		if err := validateAbsoluteURL("OIDC redirect URL", cfg.OIDCRedirectURL); err != nil {
+			return nil, err
+		}
+	}
 
 	return cfg, nil
+}
+
+// validateAbsoluteURL returns an error if raw is not a well-formed absolute
+// URL with an http(s) scheme and a host, to catch OIDC misconfiguration
+// (typos, missing scheme, stray whitespace) at startup rather than at the
+// first login attempt.
+func validateAbsoluteURL(name, raw string) error {
+	u, err := url.Parse(raw)
+	if err != nil {
+		return fmt.Errorf("%s %q is not a valid URL: %w", name, raw, err)
+	}
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return fmt.Errorf("%s %q must use http or https scheme", name, raw)
+	}
+	if u.Host == "" {
+		return fmt.Errorf("%s %q must be an absolute URL with a host", name, raw)
+	}
+	return nil
 }
 
 // firstEnv returns the value of the first key that is set to a non-empty

@@ -127,7 +127,7 @@ func (s *Server) registerRoutes() {
 	// Auth endpoints
 	s.mux.HandleFunc("GET /auth/login", s.handleLogin)
 	s.mux.HandleFunc("GET /auth/callback", s.handleCallback)
-	s.mux.HandleFunc("GET /auth/logout", s.handleLogout)
+	s.mux.HandleFunc("POST /auth/logout", s.handleLogout)
 
 	// API endpoints
 	s.mux.HandleFunc("GET /api/v1/healthz", s.handleHealthz)

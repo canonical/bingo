@@ -108,7 +108,14 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 // SSO without prompting, making "logout" appear to do nothing. Redirecting
 // through the IdP's end_session_endpoint first ends that IdP session too, so
 // the next /auth/login actually shows a login prompt.
+//
+// Logout is a POST (it mutates auth state) and requires a valid CSRF token,
+// same as other state-changing endpoints, so a third-party site can't force
+// a victim's browser to log them out via a bare cross-site GET/link.
 func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
+	if !s.requireCSRF(w, r) {
+		return
+	}
 	var idToken string
 	if sess, ok := auth.FromContext(r.Context()); ok {
 		idToken = sess.IDToken

@@ -136,6 +136,42 @@ func TestLoad_OIDCEnabledRequiresSessionSecret(t *testing.T) {
 	}
 }
 
+func TestLoad_invalidOIDCIssuerURLReturnsError(t *testing.T) {
+	t.Setenv("OIDC_ISSUER_URL", "not-a-url\n")
+	t.Setenv("OIDC_CLIENT_ID", "my-client")
+	t.Setenv("OIDC_CLIENT_SECRET", "s3cr3t")
+	t.Setenv("OIDC_REDIRECT_URL", "https://paste.example.com/auth/callback")
+	t.Setenv("SESSION_SECRET", "a-long-enough-secret-value-here!")
+	_, err := config.Load()
+	if err == nil {
+		t.Error("Load() with malformed OIDC_ISSUER_URL: want error, got nil")
+	}
+}
+
+func TestLoad_OIDCIssuerURLMissingSchemeReturnsError(t *testing.T) {
+	t.Setenv("OIDC_ISSUER_URL", "identity.example.com")
+	t.Setenv("OIDC_CLIENT_ID", "my-client")
+	t.Setenv("OIDC_CLIENT_SECRET", "s3cr3t")
+	t.Setenv("OIDC_REDIRECT_URL", "https://paste.example.com/auth/callback")
+	t.Setenv("SESSION_SECRET", "a-long-enough-secret-value-here!")
+	_, err := config.Load()
+	if err == nil {
+		t.Error("Load() with schemeless OIDC_ISSUER_URL: want error, got nil")
+	}
+}
+
+func TestLoad_invalidOIDCRedirectURLReturnsError(t *testing.T) {
+	t.Setenv("OIDC_ISSUER_URL", "https://identity.example.com")
+	t.Setenv("OIDC_CLIENT_ID", "my-client")
+	t.Setenv("OIDC_CLIENT_SECRET", "s3cr3t")
+	t.Setenv("OIDC_REDIRECT_URL", "ftp://paste.example.com/auth/callback")
+	t.Setenv("SESSION_SECRET", "a-long-enough-secret-value-here!")
+	_, err := config.Load()
+	if err == nil {
+		t.Error("Load() with non-http(s) OIDC_REDIRECT_URL: want error, got nil")
+	}
+}
+
 func TestConfig_BasePath(t *testing.T) {
 	tests := []struct {
 		name    string
