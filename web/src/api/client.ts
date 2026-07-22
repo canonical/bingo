@@ -9,6 +9,7 @@ import {
   isCreatePasteResponse,
   isPasteResponse,
   isMyPastesResponse,
+  isMeResponse,
 } from './types'
 
 // ─── CSRF ────────────────────────────────────────────────────────────────────
@@ -91,8 +92,6 @@ export async function getMyPastes(): Promise<MyPastesResponse> {
 
 export async function getMe(): Promise<MeResponse> {
   const data = await request<unknown>('api/v1/me', { method: 'GET' })
-  if (typeof data !== 'object' || data === null || typeof (data as Record<string, unknown>).authenticated !== 'boolean') {
-    throw new ApiRequestError(200, 'invalid_response', 'Unexpected response shape from GET /me')
-  }
-  return data as MeResponse
+  if (!isMeResponse(data)) throw new ApiRequestError(200, 'invalid_response', 'Unexpected response shape from GET /me')
+  return data
 }
