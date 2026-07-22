@@ -34,6 +34,14 @@ func NewCodec(secret string) *Codec {
 }
 
 // Set encodes sess and writes the session cookie to w.
+//
+// Secure is always true, so browsers only send this cookie over HTTPS. This
+// is required to protect the session from interception, but it means the
+// cookie is silently dropped (no error) when the app is served over plain
+// HTTP, e.g. a local dev server at http://localhost. In that case OIDC login
+// will appear to complete but no session will persist, producing an
+// unexplained redirect-to-login loop. Serve over HTTPS (a local reverse
+// proxy with a self-signed/mkcert certificate) to test auth locally.
 func (c *Codec) Set(w http.ResponseWriter, sess *Session) error {
 	encoded, err := c.sc.Encode(sessionCookieName, sess)
 	if err != nil {
