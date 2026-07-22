@@ -5,7 +5,7 @@ import AppNavigation from '../components/Navigation/Navigation'
 import PasteViewer from '../components/PasteViewer/PasteViewer'
 import { getPaste, deletePaste } from '../api/client'
 import { PasteResponse } from '../api/types'
-import { useAuthEnabled } from '../hooks/useAuthEnabled'
+import { useMe } from '../hooks/useMe'
 
 export default function PastePage() {
   const { key } = useParams<{ key: string }>()
@@ -14,8 +14,7 @@ export default function PastePage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const isAuthenticated = document.cookie.includes('csrf_token=')
-  const authEnabled = useAuthEnabled()
+  const { authenticated: isAuthenticated, auth_enabled: authEnabled } = useMe()
 
   useEffect(() => {
     if (!key) return
