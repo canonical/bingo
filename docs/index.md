@@ -8,7 +8,7 @@ myst:
 
 # bingo operator
 
-A [Juju](https://juju.is/) [charm](https://documentation.ubuntu.com/juju/3.6/reference/charm/)
+A [Juju](https://juju.is/) {ref}`charm <juju:charm>`
 deploying and managing [bingo](https://github.com/canonical/bingo) on Kubernetes.
 bingo is a Go pastebin application that replaces
 [paste.canonical.com](https://paste.canonical.com).
@@ -23,7 +23,7 @@ scaling, and more. For bingo, this includes:
 * Observability integrations (Prometheus, Grafana, Loki)
 
 The bingo charm allows for deployment on many different Kubernetes platforms,
-from [MicroK8s](https://microk8s.io/) to
+from [MicroK8s](https://canonical.com/microk8s) to
 [Charmed Kubernetes](https://ubuntu.com/kubernetes) to public cloud Kubernetes offerings.
 
 This charm will make operating bingo straightforward for DevOps or SRE teams through Juju's
@@ -41,8 +41,7 @@ This documentation uses the [Diátaxis documentation structure](https://diataxis
   relations, and other technical details.
 - {ref}`Explanation <explanation_index>` includes topic overviews, background and context
   and detailed discussion.
-- {ref}`Changelog <changelog>` holds all the release history for the charm,
-  including any system or upgrade requirements.
+- {ref}`Changelog <changelog>` holds all the release history for the charm.
 
 ### Contributing to this documentation
 

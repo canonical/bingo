@@ -26,6 +26,9 @@ project = "bingo"
 # Author name; used in the default copyright statement in the page footer
 author = "Canonical Ltd."
 
+# Version
+version = f"{os.environ.get('READTHEDOCS_VERSION', 'local')}"
+
 # The year in the copyright statement
 copyright = f"{datetime.date.today().year}"
 
@@ -243,21 +246,20 @@ extensions = [
 
 # Excludes files or directories from processing
 exclude_patterns = [
-    "doc-cheat-sheet*",
     ".venv*",
     "_dev",
     "superpowers",
 ]
 
 # Adds custom CSS files, located remotely or in 'html_static_path'.
-# html_css_files = [
-#     "https://assets.ubuntu.com/v1/d86746ef-cookie_banner.css",
-# ]
+html_css_files = [
+    "https://assets.ubuntu.com/v1/d86746ef-cookie_banner.css",
+]
 
 # Adds custom JavaScript files, located remotely or in 'html_static_path'.
-# html_js_files = [
-#     "https://assets.ubuntu.com/v1/287a5e8f-bundle.js",
-# ]
+html_js_files = [
+    "https://assets.ubuntu.com/v1/287a5e8f-bundle.js",
+]
 
 # Appends extra markup to the end of every document written in reST
 # rst_epilog = """
@@ -293,6 +295,6 @@ rst_prolog = """
 
 # Configuration for Intersphinx projects
 intersphinx_mapping = {
-    "juju": ("https://documentation.ubuntu.com/juju/3.6/", None),
+    "juju": ("https://canonical.com/juju/docs/juju-cli/3.6/", None),
     "starter-pack": ("https://canonical-starter-pack.readthedocs-hosted.com/stable/", None),
 }
