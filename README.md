@@ -67,3 +67,32 @@ Required relations:
 * [Issues](https://github.com/canonical/bingo/issues)
 * [Contributing](CONTRIBUTING.md)
 * [Matrix](https://matrix.to/#/#charmhub-charmdev:ubuntu.com)
+
+## Documentation
+
+Our documentation is stored in the `docs` directory.
+It is based on the Canonical starter pack
+and hosted on [Read the Docs](https://canonical-bingo.readthedocs-hosted.com/latest/). In structuring,
+the documentation employs the [Diátaxis](https://diataxis.fr/) approach.
+
+You may open a pull request with your documentation changes, or you can
+[file a bug](https://github.com/canonical/bingo/issues) to provide constructive feedback or suggestions.
+
+To run the documentation locally before submitting your changes:
+
+```bash
+cd docs
+make run
+```
+
+GitHub runs automatic checks on the documentation
+to verify spelling, validate links and style guide compliance.
+
+You can (and should) run the same checks locally:
+
+```bash
+make spelling
+make linkcheck
+make vale
+make lint-md
+```
