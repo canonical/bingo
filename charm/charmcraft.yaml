@@ -22,8 +22,12 @@ extensions:
 # OpenSSL at build time. libssl-dev/pkg-config aren't present in the
 # go-framework build environment by default, so add them explicitly to avoid
 # "Could not find directory of OpenSSL installation" build failures.
+# The go-framework extension owns and forbids customizing the "charm" part
+# directly, but craft-parts installs build-packages from ALL parts up front
+# (before any part builds), so a separate no-op part works just as well.
 parts:
-  charm:
+  charm-build-deps:
+    plugin: nil
     build-packages:
       - libssl-dev
       - pkg-config
