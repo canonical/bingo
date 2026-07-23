@@ -17,6 +17,17 @@ description: |
 extensions:
   - go-framework
 
+# `cryptography` is a transitive Python dependency (pulled in via paas-charm's
+# dpcharmlibs-interfaces requirement) that compiles its Rust extension against
+# OpenSSL at build time. libssl-dev/pkg-config aren't present in the
+# go-framework build environment by default, so add them explicitly to avoid
+# "Could not find directory of OpenSSL installation" build failures.
+parts:
+  charm:
+    build-packages:
+      - libssl-dev
+      - pkg-config
+
 assumes:
   - k8s-api
 
