@@ -1,0 +1,14 @@
+@import 'vanilla-framework';
+@include vanilla;
+
+// Paste viewer: remove default margin from syntax highlighter wrapper
+.paste-code-block {
+  margin-bottom: 0;
+
+  pre {
+    margin: 0;
+    border-radius: 0;
+    font-family: 'Ubuntu Mono', ui-monospace, Consolas, monospace;
+    font-size: 0.875rem;
+  }
+}
