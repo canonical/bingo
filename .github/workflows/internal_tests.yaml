@@ -1,0 +1,55 @@
+# internal_tests.yaml — Go backend CI.
+# Runs: go test ./... (all packages), coverage gate ≥85%, golangci-lint.
+name: Internal Tests
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Go Tests & Lint
+    runs-on: ubuntu-24.04
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: bingo
+          POSTGRES_PASSWORD: bingo
+          POSTGRES_DB: bingo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U bingo"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version: '1.25'
+          cache: true
+
+      - name: Download dependencies
+        run: go mod download
+
+      - name: Run tests with coverage
+        env:
+          DATABASE_URL: postgres://bingo:bingo@localhost:5432/bingo?sslmode=disable
+        run: |
+          go test -coverprofile=coverage.out ./...
+          go tool cover -func=coverage.out | tail -1
+          COVERAGE=$(go tool cover -func=coverage.out | grep '^total' | awk '{print $3}' | tr -d '%')
+          echo "Coverage: ${COVERAGE}%"
+          awk "BEGIN { if (${COVERAGE} < 85) { print \"Coverage ${COVERAGE}% is below 85% gate\"; exit 1 } }"
+
+      - uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.12
+          args: --timeout 5m

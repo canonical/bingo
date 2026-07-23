@@ -200,7 +200,7 @@ Referencing `dpaste`[^1] as the conceptual baseline:
 - **Paste creation & retrieval:** Submit raw text with syntax highlighting metadata
   (language key), return a unique key via JSON, fetch paste content + metadata via
   JSON API.
-- **Unique key generation:** Base62, collision-resistant, starting at 4 chars; on
+- **Unique key generation:** Base62, collision-resistant, starting at 10 chars; on
   `UNIQUE` violation, retry with length + 1 (dpaste pattern).
 - **Expiration (mandatory):** Every paste expires. Allowed durations: `1d`, `1w`,
   `1mo`, `3mo` (default), `1y` (max). No keep-forever option.
@@ -422,8 +422,8 @@ are redirected to `/auth/login` before any application content is shown.
 
 6. **"My pastes"** view lists the authenticated user's own pastes.
 
-7. **Logout** — `GET /auth/logout` clears the session and CSRF cookies and redirects
-   to `/`, which immediately redirects back to `/auth/login`.
+7. **Logout** — `POST /auth/logout` (CSRF-protected) clears the session and CSRF
+   cookies and redirects to `/`, which immediately redirects back to `/auth/login`.
 
 ---
 

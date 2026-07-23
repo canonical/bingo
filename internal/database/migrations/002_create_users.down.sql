@@ -1,0 +1,2 @@
+ALTER TABLE pastes DROP CONSTRAINT IF EXISTS pastes_owner_id_fkey;
+DROP TABLE IF EXISTS users;

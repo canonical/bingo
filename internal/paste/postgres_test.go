@@ -1,0 +1,332 @@
+package paste_test
+
+import (
+	"context"
+	"database/sql"
+	"log"
+	"os"
+	"testing"
+	"time"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+
+	"bingo/internal/database"
+	"bingo/internal/paste"
+)
+
+var testDB *sql.DB
+
+func TestMain(m *testing.M) {
+	dbURL := os.Getenv("DATABASE_URL")
+	if dbURL == "" {
+		// No DB configured: run unit-only tests (paste_test.go) and exit.
+		os.Exit(m.Run())
+	}
+
+	var err error
+	testDB, err = database.Open(dbURL)
+	if err != nil {
+		log.Fatalf("open test db: %v", err)
+	}
+
+	if err := database.Migrate(testDB); err != nil {
+		log.Fatalf("migrate test db: %v", err)
+	}
+
+	os.Exit(m.Run())
+}
+
+// requireDB skips the test if no DATABASE_URL was provided.
+func requireDB(t *testing.T) *paste.PostgresRepository {
+	t.Helper()
+	if testDB == nil {
+		t.Skip("DATABASE_URL not set — skipping integration test")
+	}
+	return paste.NewPostgresRepository(testDB)
+}
+
+// cleanPastes removes all rows from pastes between tests to ensure isolation.
+func cleanPastes(t *testing.T) {
+	t.Helper()
+	if _, err := testDB.ExecContext(context.Background(), "DELETE FROM pastes"); err != nil {
+		t.Fatalf("clean pastes: %v", err)
+	}
+}
+
+func TestPostgresRepository_Create(t *testing.T) {
+	repo := requireDB(t)
+	t.Cleanup(func() { cleanPastes(t) })
+
+	params := paste.CreateParams{
+		Content:   "hello world",
+		Language:  "plaintext",
+		Title:     "test paste",
+		ExpiresIn: paste.ExpiresIn3mo,
+	}
+
+	p, err := repo.Create(context.Background(), params)
+	if err != nil {
+		t.Fatalf("Create() error = %v", err)
+	}
+
+	if len(p.Key) < 10 {
+		t.Errorf("Key length = %d, want >= 10", len(p.Key))
+	}
+	if p.Content != params.Content {
+		t.Errorf("Content = %q, want %q", p.Content, params.Content)
+	}
+	if p.Language != params.Language {
+		t.Errorf("Language = %q, want %q", p.Language, params.Language)
+	}
+	if p.Title != params.Title {
+		t.Errorf("Title = %q, want %q", p.Title, params.Title)
+	}
+	if p.SizeBytes != len(params.Content) {
+		t.Errorf("SizeBytes = %d, want %d", p.SizeBytes, len(params.Content))
+	}
+	if p.OwnerID != nil {
+		t.Errorf("OwnerID = %v, want nil", p.OwnerID)
+	}
+	if p.ExpiresAt.Before(time.Now()) {
+		t.Errorf("ExpiresAt %v is in the past", p.ExpiresAt)
+	}
+}
+
+func TestPostgresRepository_GetByKey(t *testing.T) {
+	repo := requireDB(t)
+	t.Cleanup(func() { cleanPastes(t) })
+
+	created, err := repo.Create(context.Background(), paste.CreateParams{
+		Content:   "get test",
+		Language:  "go",
+		ExpiresIn: paste.ExpiresIn1d,
+	})
+	if err != nil {
+		t.Fatalf("Create(): %v", err)
+	}
+
+	got, err := repo.GetByKey(context.Background(), created.Key)
+	if err != nil {
+		t.Fatalf("GetByKey(): %v", err)
+	}
+
+	if diff := cmp.Diff(created, got, cmpopts.IgnoreFields(paste.Paste{}, "CreatedAt", "ExpiresAt")); diff != "" {
+		t.Errorf("GetByKey() mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestPostgresRepository_GetByKey_notFound(t *testing.T) {
+	repo := requireDB(t)
+
+	_, err := repo.GetByKey(context.Background(), "nosuchkey")
+	if err == nil {
+		t.Fatal("GetByKey() expected error, got nil")
+	}
+	if err != paste.ErrNotFound {
+		t.Errorf("GetByKey() error = %v, want ErrNotFound", err)
+	}
+}
+
+func TestPostgresRepository_GetByKey_lazyExpiry(t *testing.T) {
+	repo := requireDB(t)
+	t.Cleanup(func() { cleanPastes(t) })
+
+	// Insert a paste with expires_at already in the past.
+	_, err := testDB.ExecContext(context.Background(),
+		`INSERT INTO pastes (key, content, language, size_bytes, expires_at, created_at)
+         VALUES ($1, $2, $3, $4, now() - interval '1 second', now() - interval '2 seconds')`,
+		"lazyexpiredkey", "stale content", "plaintext", 13,
+	)
+	if err != nil {
+		t.Fatalf("insert expired paste: %v", err)
+	}
+
+	_, err = repo.GetByKey(context.Background(), "lazyexpiredkey")
+	if err != paste.ErrNotFound {
+		t.Errorf("GetByKey() on expired paste = %v, want ErrNotFound", err)
+	}
+
+	// Confirm the row was also deleted (lazy delete side-effect).
+	var count int
+	if err := testDB.QueryRowContext(context.Background(),
+		"SELECT COUNT(*) FROM pastes WHERE key = $1", "lazyexpiredkey",
+	).Scan(&count); err != nil {
+		t.Fatalf("count query: %v", err)
+	}
+	if count != 0 {
+		t.Errorf("expired row still in DB after lazy delete, want 0 rows")
+	}
+}
+
+func TestPostgresRepository_Delete(t *testing.T) {
+	repo := requireDB(t)
+	t.Cleanup(func() { cleanPastes(t) })
+
+	p, err := repo.Create(context.Background(), paste.CreateParams{
+		Content:   "delete me",
+		Language:  "plaintext",
+		ExpiresIn: paste.ExpiresIn1d,
+	})
+	if err != nil {
+		t.Fatalf("Create(): %v", err)
+	}
+
+	if delErr := repo.Delete(context.Background(), p.Key); delErr != nil {
+		t.Fatalf("Delete(): %v", delErr)
+	}
+
+	_, err = repo.GetByKey(context.Background(), p.Key)
+	if err != paste.ErrNotFound {
+		t.Errorf("after Delete, GetByKey error = %v, want ErrNotFound", err)
+	}
+
+	// Test Delete on non-existent key (must not error)
+	if err := repo.Delete(context.Background(), "does-not-exist-key"); err != nil {
+		t.Errorf("Delete non-existent key error = %v, want nil", err)
+	}
+}
+
+func TestPostgresRepository_DeleteExpired(t *testing.T) {
+	repo := requireDB(t)
+	t.Cleanup(func() { cleanPastes(t) })
+
+	// Insert a row with expires_at already in the past via raw SQL
+	// (bypasses the expiry_after_creation constraint by using a past timestamp at insert time)
+	// We use a small offset to satisfy the DB constraint (expires_at > created_at)
+	// by inserting created_at even further in the past.
+	_, err := testDB.ExecContext(context.Background(),
+		`INSERT INTO pastes (key, content, language, size_bytes, expires_at, created_at)
+         VALUES ($1, $2, $3, $4, now() - interval '1 second', now() - interval '2 seconds')`,
+		"expiredkey", "old content", "plaintext", 11,
+	)
+	if err != nil {
+		t.Fatalf("insert expired paste: %v", err)
+	}
+
+	// Insert a live paste to confirm it is not deleted
+	live, err := repo.Create(context.Background(), paste.CreateParams{
+		Content:   "live paste",
+		Language:  "plaintext",
+		ExpiresIn: paste.ExpiresIn1y,
+	})
+	if err != nil {
+		t.Fatalf("Create live paste: %v", err)
+	}
+
+	n, err := repo.DeleteExpired(context.Background())
+	if err != nil {
+		t.Fatalf("DeleteExpired(): %v", err)
+	}
+	if n < 1 {
+		t.Errorf("DeleteExpired() = %d, want >= 1", n)
+	}
+
+	// Expired paste should be gone
+	if _, err := repo.GetByKey(context.Background(), "expiredkey"); err != paste.ErrNotFound {
+		t.Errorf("expired paste still present after DeleteExpired")
+	}
+
+	// Live paste should survive
+	if _, err := repo.GetByKey(context.Background(), live.Key); err != nil {
+		t.Errorf("live paste deleted unexpectedly: %v", err)
+	}
+}
+
+func TestPostgresRepository_Create_queryError(t *testing.T) {
+	repo := requireDB(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel() // already-cancelled: insert must fail with a non-pg-collision error
+
+	_, err := repo.Create(ctx, paste.CreateParams{
+		Content:   "will fail",
+		Language:  "plaintext",
+		ExpiresIn: paste.ExpiresIn1d,
+	})
+	if err == nil {
+		t.Fatal("Create() with a cancelled context: want error, got nil")
+	}
+}
+
+func TestPostgresRepository_DeleteExpired_queryError(t *testing.T) {
+	repo := requireDB(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := repo.DeleteExpired(ctx)
+	if err == nil {
+		t.Fatal("DeleteExpired() with a cancelled context: want error, got nil")
+	}
+}
+
+func TestPostgresRepository_ListByOwner_queryError(t *testing.T) {
+	repo := requireDB(t)
+
+	ctx, cancel := context.WithCancel(context.Background())
+	cancel()
+
+	_, err := repo.ListByOwner(ctx, 1, 50)
+	if err == nil {
+		t.Fatal("ListByOwner() with a cancelled context: want error, got nil")
+	}
+}
+
+func TestPostgresRepository_ListByOwner(t *testing.T) {
+	repo := requireDB(t)
+
+	// Insert a fake owner into users.
+	var ownerID int64
+	err := testDB.QueryRowContext(context.Background(),
+		`INSERT INTO users (sub, email) VALUES ($1, $2) RETURNING id`,
+		"sub|listtest", "list@example.com",
+	).Scan(&ownerID)
+	if err != nil {
+		t.Fatalf("insert user: %v", err)
+	}
+	t.Cleanup(func() {
+		cleanPastes(t)
+		testDB.ExecContext(context.Background(), "DELETE FROM users WHERE id = $1", ownerID) //nolint:errcheck
+	})
+
+	// Create two pastes for this owner, one for no owner.
+	params := paste.CreateParams{
+		Content:   "owned paste",
+		Language:  "go",
+		ExpiresIn: paste.ExpiresIn1d,
+		OwnerID:   &ownerID,
+	}
+	p1, err := repo.Create(context.Background(), params)
+	if err != nil {
+		t.Fatalf("Create owned: %v", err)
+	}
+	params.Content = "owned paste 2"
+	p2, err := repo.Create(context.Background(), params)
+	if err != nil {
+		t.Fatalf("Create owned 2: %v", err)
+	}
+	// Anonymous paste — must NOT appear in results.
+	_, err = repo.Create(context.Background(), paste.CreateParams{
+		Content:   "anon paste",
+		Language:  "go",
+		ExpiresIn: paste.ExpiresIn1d,
+	})
+	if err != nil {
+		t.Fatalf("Create anon: %v", err)
+	}
+
+	pastes, err := repo.ListByOwner(context.Background(), ownerID, 50)
+	if err != nil {
+		t.Fatalf("ListByOwner(): %v", err)
+	}
+	if len(pastes) != 2 {
+		t.Fatalf("ListByOwner() returned %d pastes, want 2", len(pastes))
+	}
+	keys := map[string]bool{p1.Key: true, p2.Key: true}
+	for _, p := range pastes {
+		if !keys[p.Key] {
+			t.Errorf("unexpected key %q in results", p.Key)
+		}
+	}
+}
