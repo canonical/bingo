@@ -1,0 +1,95 @@
+# charmcraft.yaml — bingo charm using the go-framework extension.
+# See https://documentation.ubuntu.com/charmcraft/stable/reference/files/charmcraft-yaml-file/
+name: bingo
+
+type: charm
+
+base: ubuntu@24.04
+platforms:
+  amd64:
+
+summary: Canonical Pastebin — Go + React replacement for paste.canonical.com
+description: |
+  bingo is a 12-Factor Go application providing paste creation, retrieval,
+  expiry, optional OIDC authentication (Canonical Identity Platform), and a
+  React frontend styled with Canonical's Vanilla Framework / Pragma components.
+
+extensions:
+  - go-framework
+
+# `cryptography` is a transitive Python dependency (pulled in via paas-charm's
+# dpcharmlibs-interfaces requirement) that compiles its Rust extension against
+# OpenSSL at build time. libssl-dev/pkg-config aren't present in the
+# go-framework build environment by default, so add them explicitly to avoid
+# "Could not find directory of OpenSSL installation" build failures.
+# The go-framework extension owns and forbids customizing the "charm" part
+# directly, but craft-parts installs build-packages from ALL parts up front
+# (before any part builds), so a separate no-op part works just as well.
+parts:
+  charm-build-deps:
+    plugin: nil
+    build-packages:
+      - libssl-dev
+      - pkg-config
+
+assumes:
+  - k8s-api
+
+requires:
+  postgresql:
+    interface: postgresql_client
+    limit: 1
+  tracing:
+    interface: tracing
+    optional: true
+    limit: 1
+  oauth:
+    interface: oauth
+    optional: true
+    limit: 1
+
+config:
+  options:
+    base-url:
+      type: string
+      description: |
+        Public base URL for generated paste links, e.g. https://paste.canonical.com.
+        Injected as APP_BASE_URL.
+      default: ""
+    max-paste-size-bytes:
+      type: int
+      description: Maximum paste content size in bytes. Injected as APP_MAX_PASTE_SIZE_BYTES.
+      default: 5242880
+    log-level:
+      type: string
+      description: "Logging level: debug|info|warn|error. Injected as APP_LOG_LEVEL."
+      default: info
+    web-dir:
+      type: string
+      description: |
+        Path to the built frontend assets served as a SPA. Injected as
+        APP_WEB_DIR. Empty disables static file serving.
+      default: /app/web/dist
+    oauth-redirect-path:
+      type: string
+      description: |
+        Fixed path appended to base-url to build the OIDC callback redirect
+        URI registered with the identity provider over the oauth relation.
+        This is NOT meant to be changed: the Go app's callback route is
+        hardcoded to /auth/callback and does not read this config, so any
+        other value will register a callback with the identity provider
+        that the app never serves, breaking login. Present only to satisfy
+        paas_charm's relation wiring default.
+      default: /auth/callback
+    oauth-scopes:
+      type: string
+      description: |
+        Space-separated OAuth scopes requested from the identity provider over
+        the oauth relation. Must include 'openid'.
+      default: "openid email profile"
+    oauth-user-name-attribute:
+      type: string
+      description: |
+        Claim used to identify the authenticated user, from the identity
+        provider's userinfo response, over the oauth relation.
+      default: sub
