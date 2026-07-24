@@ -67,6 +67,7 @@ Required relations:
 * [Issues](https://github.com/canonical/bingo/issues)
 * [Contributing](CONTRIBUTING.md)
 * [Matrix](https://matrix.to/#/#charmhub-charmdev:ubuntu.com)
+* [License](LICENSE) (Apache 2.0)
 
 ## Documentation
 
