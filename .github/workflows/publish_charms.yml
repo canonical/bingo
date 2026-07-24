@@ -24,6 +24,6 @@ jobs:
       channel: ${{ inputs.channel }}
       dry-run: ${{ inputs.dry-run }}
     permissions:
-      contents: read
+      contents: write
       actions: read
     secrets: inherit
