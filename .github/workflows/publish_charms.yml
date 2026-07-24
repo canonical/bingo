@@ -23,6 +23,7 @@ jobs:
     with:
       channel: ${{ inputs.channel }}
       dry-run: ${{ inputs.dry-run }}
+      integration-workflow-name: charms_integration.yaml
     permissions:
       contents: write
       actions: read
