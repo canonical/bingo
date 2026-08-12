@@ -107,7 +107,7 @@ requires-dist = [
 integration = [
     { name = "jubilant", specifier = ">=1.8,<2" },
     { name = "minio" },
-    { name = "opcli", git = "https://github.com/canonical/charm-ci" },
+    { name = "opcli", git = "https://github.com/canonical/charm-ci?rev=v0.0.1-alpha.10" },
     { name = "pytest" },
     { name = "pytest-jubilant", specifier = ">=2.0.1,<3" },
     { name = "pyyaml" },
@@ -484,8 +484,8 @@ wheels = [
 
 [[package]]
 name = "opcli"
-version = "0.0.1a2"
-source = { git = "https://github.com/canonical/charm-ci#bca4b5575168f505a2f3a21325158e99a6f2432a" }
+version = "0.0.1a10"
+source = { git = "https://github.com/canonical/charm-ci?rev=v0.0.1-alpha.10#f0746f4dab15ea08354d38024b188b38576b944a" }
 dependencies = [
     { name = "pydantic" },
     { name = "ruamel-yaml" },
