@@ -8,7 +8,7 @@ on:
   workflow_dispatch:
     inputs:
       channel:
-        description: "CharmHub channel (e.g. latest/edge, 1.0/stable)"
+        description: "CharmHub channel (e.g. 1/edge, 1/stable)"
         required: false
         type: string
       dry-run:
