@@ -29,9 +29,9 @@ building shareable paste links, for example `https://paste.example.com`.
 
 If Traefik routes to bingo using a path prefix (the default "path" routing mode used by
 `traefik-k8s`, as in this guide), `base-url` **must include that same path prefix**. The app also
-uses `base-url` to determine the path prefix injected into the served frontend's `<base href>` tag
-and OIDC redirect URIs, both of which need to match the prefix Traefik actually routes on. Look up
-the routed URL first:
+uses `base-url` to determine the path prefix injected into the `<base href>` tag of the served
+frontend and into OIDC redirect URIs, both of which need to match the prefix Traefik actually
+routes on.
 
 ```
 juju run traefik-k8s/0 show-proxied-endpoints
