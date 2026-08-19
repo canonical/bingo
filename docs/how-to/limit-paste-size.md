@@ -42,6 +42,8 @@ juju config bingo max-paste-size-bytes
 1048576
 ```
 
+## Verify
+
 Confirm the limit is enforced by submitting a paste larger than the configured size and checking
 that the request is rejected. Replace `<bingo-address>` with the address you use to reach bingo,
 for example the ingress address shown in `juju status`:

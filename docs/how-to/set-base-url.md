@@ -69,6 +69,8 @@ routes on `/bingo-tutorial-bingo`) breaks the frontend: the browser will request
 from the domain root instead of under the routed path, resulting in a blank page.
 ```
 
+## Verify
+
 Create a paste against the `bingo` URL from the `show-proxied-endpoints` output above and confirm
 the returned `url` field uses the configured base URL instead:
 

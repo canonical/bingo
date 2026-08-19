@@ -25,7 +25,7 @@ This charm provides a `rotate-secret-key` action to rotate the secret key. This 
 security breach occurs or the secret key needs to be rotated as routine hygiene.
 
 This action's effect depends on whether OIDC authentication is enabled (see
-{ref}`how_to_enable_oidc_login`):
+{ref}`how_to_configure_oidc_login`):
 
 - **OIDC enabled**: existing session cookies were signed with the old secret and can no longer be
   verified after rotation, so all currently logged-in users are forced to log in again.

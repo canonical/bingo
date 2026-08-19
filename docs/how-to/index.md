@@ -14,5 +14,11 @@ using, maintaining, and contributing to the charm.
 ```{toctree}
 :maxdepth: 1
 
+Set the base URL <set-base-url>
+Limit paste size <limit-paste-size>
+Configure logging <configure-logging>
+Serve frontend assets <serve-frontend-assets>
+Configure OIDC login <configure-oidc-login>
+Rotate the secret key <rotate-secret-key>
 Contribute <contribute>
 ```

@@ -57,4 +57,5 @@ OAuth
 Ory('s)?
 pastebin
 unprefixed
+userinfo
 
