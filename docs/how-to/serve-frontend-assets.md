@@ -37,7 +37,7 @@ Verify the configuration was applied:
 juju config bingo web-dir
 ```
 
-This command should return the dierctory where the workload image lives.
+This command should return the directory where the workload image lives.
 
 Confirm the frontend is served correctly by requesting the application's root path. Replace
 `<bingo-address>` with the address you use to reach bingo, for example the ingress address shown

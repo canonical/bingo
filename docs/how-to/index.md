@@ -15,6 +15,7 @@ credential rotation, and integrating with the wider Juju ecosystem for ingress a
 aggregation.
 
 ## Application configuration
+
 <!--
 Themes: base URL and routing, paste size limits, frontend asset delivery, log verbosity
 Justification: shared operational concern — tuning the charm's `juju config` options that
@@ -31,6 +32,7 @@ Juju ecosystem scope: charm-specific (config options), cross-charm (ingress via 
 - {ref}`Configure logging <how_to_configure_logging>`
 
 ## Authentication and security
+
 <!--
 Themes: OIDC/OAuth integration, secret key lifecycle, session security
 Justification: shared concern — securing access to the application and managing the
@@ -45,6 +47,7 @@ Juju ecosystem scope: cross-charm (oauth relation with identity provider), charm
 - {ref}`Rotate the secret key <how_to_rotate_secret_key>`
 
 ## Advanced operations
+
 <!--
 Themes: documentation contribution workflow
 Justification: single-page topic without a shared peer — merged into fallback
