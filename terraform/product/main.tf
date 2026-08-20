@@ -1,19 +1,9 @@
 # Copyright 2026 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-resource "juju_model" "this" {
-  name = var.model_name
-
-  cloud {
-    name = var.cloud_name
-  }
-
-  credential = var.credential_name
-}
-
 module "bingo" {
   source     = "../"
-  model_uuid = juju_model.this.uuid
+  model_uuid = var.model_uuid
   app_name   = var.bingo.app_name
   channel    = var.bingo.channel
   revision   = var.bingo.revision
@@ -27,7 +17,7 @@ module "bingo" {
 resource "juju_application" "postgresql" {
   count      = var.deploy_postgresql ? 1 : 0
   name       = "postgresql-k8s"
-  model_uuid = juju_model.this.uuid
+  model_uuid = var.model_uuid
 
   charm {
     name     = "postgresql-k8s"
@@ -43,7 +33,7 @@ resource "juju_application" "postgresql" {
 resource "juju_application" "oauth" {
   count      = var.deploy_oauth ? 1 : 0
   name       = "oauth-external-idp-integrator"
-  model_uuid = juju_model.this.uuid
+  model_uuid = var.model_uuid
 
   charm {
     name     = "oauth-external-idp-integrator"
@@ -58,7 +48,7 @@ resource "juju_application" "oauth" {
 resource "juju_application" "traefik" {
   count      = var.deploy_ingress ? 1 : 0
   name       = "traefik-k8s"
-  model_uuid = juju_model.this.uuid
+  model_uuid = var.model_uuid
 
   charm {
     name     = "traefik-k8s"
@@ -75,7 +65,7 @@ resource "juju_application" "traefik" {
 
 resource "juju_integration" "bingo_postgresql" {
   count      = var.deploy_postgresql ? 1 : 0
-  model_uuid = juju_model.this.uuid
+  model_uuid = var.model_uuid
 
   application {
     name     = module.bingo.app_name
@@ -90,7 +80,7 @@ resource "juju_integration" "bingo_postgresql" {
 
 resource "juju_integration" "bingo_oauth" {
   count      = var.deploy_oauth ? 1 : 0
-  model_uuid = juju_model.this.uuid
+  model_uuid = var.model_uuid
 
   application {
     name     = module.bingo.app_name
@@ -105,7 +95,7 @@ resource "juju_integration" "bingo_oauth" {
 
 resource "juju_integration" "bingo_ingress" {
   count      = var.deploy_ingress ? 1 : 0
-  model_uuid = juju_model.this.uuid
+  model_uuid = var.model_uuid
 
   application {
     name     = module.bingo.app_name
@@ -122,7 +112,7 @@ resource "juju_integration" "bingo_ingress" {
 
 resource "juju_integration" "bingo_tracing" {
   count      = var.tracing_offer_url != null ? 1 : 0
-  model_uuid = juju_model.this.uuid
+  model_uuid = var.model_uuid
 
   application {
     name     = module.bingo.app_name
@@ -136,7 +126,7 @@ resource "juju_integration" "bingo_tracing" {
 
 resource "juju_integration" "bingo_logging" {
   count      = var.logging_offer_url != null ? 1 : 0
-  model_uuid = juju_model.this.uuid
+  model_uuid = var.model_uuid
 
   application {
     name     = module.bingo.app_name
@@ -150,7 +140,7 @@ resource "juju_integration" "bingo_logging" {
 
 resource "juju_integration" "bingo_metrics" {
   count      = var.metrics_offer_url != null ? 1 : 0
-  model_uuid = juju_model.this.uuid
+  model_uuid = var.model_uuid
 
   application {
     name     = module.bingo.app_name
@@ -164,7 +154,7 @@ resource "juju_integration" "bingo_metrics" {
 
 resource "juju_integration" "bingo_grafana_dashboard" {
   count      = var.grafana_dashboard_offer_url != null ? 1 : 0
-  model_uuid = juju_model.this.uuid
+  model_uuid = var.model_uuid
 
   application {
     name     = module.bingo.app_name

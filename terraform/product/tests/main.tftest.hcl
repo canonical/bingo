@@ -13,16 +13,10 @@ run "basic_deploy" {
   command = plan
 
   variables {
-    model_name        = "tf-bingo-product-test"
-    cloud_name        = run.setup_tests.cloud_name
+    model_uuid        = run.setup_tests.model_uuid
     deploy_postgresql = true
     deploy_oauth      = false
     deploy_ingress    = false
-  }
-
-  assert {
-    condition     = output.model_name == "tf-bingo-product-test"
-    error_message = "model_name did not match expected"
   }
 
   assert {

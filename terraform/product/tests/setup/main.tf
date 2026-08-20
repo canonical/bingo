@@ -12,6 +12,19 @@ terraform {
 
 provider "juju" {}
 
-output "cloud_name" {
-  value = "tfk8s"
+resource "juju_model" "test_model" {
+  name       = "tf-bingo-product-${formatdate("YYYYMMDDhhmmss", timestamp())}"
+  credential = "tfk8s"
+
+  cloud {
+    name = "tfk8s"
+  }
+}
+
+output "model_uuid" {
+  value = juju_model.test_model.uuid
+}
+
+output "model_name" {
+  value = juju_model.test_model.name
 }

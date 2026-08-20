@@ -1,11 +1,6 @@
 # Copyright 2026 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-output "model_name" {
-  description = "Name of the Juju model created for this deployment."
-  value       = juju_model.this.name
-}
-
 output "bingo" {
   description = "bingo application name and relation endpoint names."
   value = {

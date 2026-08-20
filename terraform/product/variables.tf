@@ -1,21 +1,9 @@
 # Copyright 2026 Canonical Ltd.
 # See LICENSE file for licensing details.
 
-variable "model_name" {
-  description = "Name of the Juju model to create for this deployment."
+variable "model_uuid" {
+  description = "UUID of the Juju model where the applications will be deployed. The model must already exist; this module does not create one."
   type        = string
-  default     = "bingo"
-}
-
-variable "cloud_name" {
-  description = "Name of the Juju cloud to deploy the model onto."
-  type        = string
-}
-
-variable "credential_name" {
-  description = "Name of the Juju credential to use for the model. Leave null to use the cloud's default credential."
-  type        = string
-  default     = null
 }
 
 variable "bingo" {
