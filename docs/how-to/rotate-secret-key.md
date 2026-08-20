@@ -8,16 +8,10 @@ myst:
 
 # How to rotate the secret key
 
-This guide provides instructions for rotating bingo's shared application secret key. This secret
-is only used to sign and verify OIDC session cookies. It is not used for CSRF tokens or any other purpose.
-
-## Prerequisites
-
-Deploy the bingo charm.
-
-```
-juju deploy bingo
-```
+Rotating bingo's shared application secret key enables you to invalidate all existing OIDC
+session cookies at once, which is useful for responding to a suspected security breach or for
+following routine credential-hygiene practices. This secret is only used to sign and verify OIDC
+session cookies. It is not used for CSRF tokens or any other purpose.
 
 ## Rotate the secret key
 
@@ -38,6 +32,10 @@ Run the action against the leader unit:
 juju run bingo/leader rotate-secret-key
 ```
 
+## Verify
+
+The `status: success` line in the action output confirms the rotation completed.
+
 ```{terminal}
 :output-only:
 
@@ -47,10 +45,6 @@ Running operation 1 with 1 task
 Waiting for task 2...
 status: success
 ```
-
-## Verify
-
-The `status: success` line in the action output above confirms the rotation completed.
 
 If OIDC is enabled, confirm a previously authenticated session is no longer valid by refreshing
 the browser session, or by reusing an old session cookie against bingo; you should be redirected

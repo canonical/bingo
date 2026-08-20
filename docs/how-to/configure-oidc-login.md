@@ -8,8 +8,7 @@ myst:
 
 # How to configure OIDC login
 
-This guide covers the config options bingo exposes for OpenID Connect (OIDC) authentication over
-the `oauth` relation.
+The bingo charm exposes configurations for OpenID Connect (OIDC) authentication over the `oauth` relation, enabling you to restrict access to trusted users, enforce single sign-on with your existing identity provider, and secure your pastebin deployment against unauthorized use.
 
 ## Prerequisites
 
@@ -27,30 +26,30 @@ when registering bingo as an OAuth client:
 - `oauth-user-name-attribute`: claim from the identity provider's userinfo response used to
   identify the authenticated user. Default: `sub`.
 
+Set the configurations:
+
 ```
 juju config bingo oauth-scopes="openid email profile"
 juju config bingo oauth-user-name-attribute=email
 ```
 
-```{note}
 These options only affect the client registration recorded with the identity provider — bingo's
 own OIDC scopes are fixed internally to `openid email profile`, so changing them does not change
 what the application requests at runtime.
-```
 
+```{warning}
 Do not change `oauth-redirect-path`: bingo's callback route is hardcoded to `/auth/callback`, and
 the charm blocks the unit if this option is overridden.
+```
 
 ## Verify
 
 Check that bingo's `oauth` relation is active and the charm is not blocked:
 
-```
-juju status --relations
-```
-
 ```{terminal}
-:output-only:
+:copy:
+
+juju status --relations
 
 App             Status  Scale  Charm  Channel  Rev  Address  Exposed  Message
 bingo           active      1  bingo                  <ip>     no
@@ -63,4 +62,4 @@ hydra:oauth           bingo:oauth  oauth      regular
 ```
 
 Navigate to bingo's base URL in a browser and confirm you are redirected to the identity
-provider's login page, and that a successful login returns you to bingo, authenticated.
+provider's login page, and that a successful login returns you to bingo.

@@ -8,23 +8,7 @@ myst:
 
 # How to configure logging
 
-This guide provides instructions for adjusting the log verbosity of the bingo application.
-
-## Prerequisites
-
-Deploy the bingo charm.
-
-```
-juju deploy bingo
-```
-
-For centralized log aggregation, optionally integrate with
-[loki-k8s](https://charmhub.io/loki-k8s):
-
-```
-juju deploy loki-k8s --trust
-juju integrate bingo:logging loki-k8s:logging
-```
+Adjusting the log verbosity of the bingo application enables you to troubleshoot issues in detail, monitor application health, and reduce log noise in stable deployments.
 
 ## Configure the log level
 
@@ -39,17 +23,15 @@ juju config bingo log-level=debug
 
 Verify the configuration was applied:
 
-```
-juju config bingo log-level
-```
-
 ```{terminal}
-:output-only:
+:copy:
+
+juju config bingo log-level
 
 debug
 ```
 
-Changing this option restarts the workload with the new level applied. This raises or lowers
+Changing this option restarts the workload with the new level applied. The option raises or lowers
 the minimum severity of what gets logged: `debug` logs the most detail, while `warn` and `error`
 suppress everything below that severity. Logs are written as JSON lines to stdout, with each
 line's `"level"` field set to `INFO`, `DEBUG`, `WARN`, or `ERROR`.

@@ -8,23 +8,17 @@ myst:
 
 # How to limit paste size
 
-This guide provides instructions for capping the maximum size of paste content accepted by
-bingo.
-
-## Prerequisites
-
-Deploy the bingo charm.
-
-```
-juju deploy bingo
-```
+Capping the maximum size of paste content accepted by bingo enables you to protect the
+application and its storage backend from abuse or accidental overload, keep resource usage
+predictable, and guard against denial-of-service attempts that submit excessively large
+pastes.
 
 ## Limit paste size
 
 This charm exposes the `max-paste-size-bytes` configuration option to specify the maximum paste
 content size, in bytes, that the application will accept. The default is `5242880` (5 MiB).
 
-To lower the limit to, for example, 1 MiB:
+For example, lower the limit to 1 MiB:
 
 ```
 juju config bingo max-paste-size-bytes=1048576
@@ -36,11 +30,7 @@ Verify the configuration was applied:
 juju config bingo max-paste-size-bytes
 ```
 
-```{terminal}
-:output-only:
-
-1048576
-```
+This command should return `1048576`.
 
 ## Verify
 

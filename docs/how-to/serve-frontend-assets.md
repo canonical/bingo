@@ -8,17 +8,10 @@ myst:
 
 # How to serve frontend assets
 
-This guide provides instructions for configuring where bingo serves its built React frontend
-(SPA) assets from, or disabling static file serving entirely.
-
-## Prerequisites
-
-Deploy the bingo charm using a workload image that includes the built frontend assets you want
-to serve.
-
-```
-juju deploy bingo
-```
+Configuring where bingo serves its built React frontend (SPA) assets from enables you to
+accommodate a custom workload image whose build process bakes the assets into a
+non-default directory, or to disable static file serving entirely when you host the
+frontend separately (for example, on a CDN) and want bingo to serve only the API.
 
 ## Configure the web assets directory
 
@@ -44,11 +37,7 @@ Verify the configuration was applied:
 juju config bingo web-dir
 ```
 
-```{terminal}
-:output-only:
-
-/app/web/dist-custom
-```
+This command should return the dierctory where the workload image lives.
 
 Confirm the frontend is served correctly by requesting the application's root path. Replace
 `<bingo-address>` with the address you use to reach bingo, for example the ingress address shown
@@ -84,8 +73,4 @@ Verify an API endpoint, such as the health check, still responds correctly:
 curl -s http://<bingo-address>/api/v1/healthz
 ```
 
-```{terminal}
-:output-only:
-
-{"status":"ok"}
-```
+The command should respond with `{"status":"ok"}`.

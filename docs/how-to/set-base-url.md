@@ -8,13 +8,14 @@ myst:
 
 # How to set the base URL
 
-This guide provides instructions for configuring the public base URL that bingo uses when
-generating paste links.
+Configuring the public base URL that bingo uses when generating paste links enables you to
+share pastes with correct, externally reachable links once the application is exposed
+through ingress, rather than links pointing at an internal or unreachable address.
 
 ## Prerequisites
 
 Deploy the bingo charm and, if you want pastes to be reachable externally, an ingress provider
-such as [traefik-k8s](https://charmhub.io/traefik-k8s).
+such as [`traefik-k8s`](https://charmhub.io/traefik-k8s).
 
 ```
 juju deploy bingo
@@ -33,12 +34,12 @@ uses `base-url` to determine the path prefix injected into the `<base href>` tag
 frontend and into OIDC redirect URIs, both of which need to match the prefix Traefik actually
 routes on.
 
-```
-juju run traefik-k8s/0 show-proxied-endpoints
-```
+Use the `show-proxied-endpoints` action to determine the path prefix:
 
 ```{terminal}
-:output-only:
+:copy:
+
+juju run traefik-k8s/0 show-proxied-endpoints
 
 proxied-endpoints: '{"traefik-k8s": {"url": "http://10.10.161.187"}, "bingo": {"url":
   "http://10.10.161.187/bingo-tutorial-bingo"}}'
@@ -57,11 +58,7 @@ Verify the configuration was applied:
 juju config bingo base-url
 ```
 
-```{terminal}
-:output-only:
-
-https://paste.example.com/bingo-tutorial-bingo
-```
+This command should return the URL you previously provided, for example `https://paste.example.com/bingo-tutorial-bingo`.
 
 ```{caution}
 Omitting the path prefix (for example, setting `base-url=https://paste.example.com` when Traefik
@@ -79,22 +76,19 @@ curl -s -X POST http://10.10.161.187/bingo-tutorial-bingo/api/v1/pastes \
   -H 'Content-Type: application/json' -d '{"content":"hello world"}'
 ```
 
+The `url` and `raw_url` fields should be prefixed with the `base-url` value you configured,
+confirming it took effect. 
+
 ```{terminal}
 :output-only:
 
 {"key":"abc123","url":"https://paste.example.com/bingo-tutorial-bingo/abc123","raw_url":"https://paste.example.com/bingo-tutorial-bingo/api/v1/pastes/abc123/raw", ...}
 ```
 
-The `url` and `raw_url` fields should be prefixed with the `base-url` value you configured,
-confirming it took effect. Also confirm the frontend still loads correctly by requesting the root
-path:
+Also confirm the frontend still loads correctly by requesting the root path:
 
 ```
 curl -s http://10.10.161.187/bingo-tutorial-bingo/ | grep -i "base href"
 ```
 
-```{terminal}
-:output-only:
-
-<base href="/bingo-tutorial-bingo/">
-```
+This command should return the correct path prefix, for example `<base href="/bingo-tutorial-bingo/">`.
