@@ -16,8 +16,8 @@ aggregation.
 
 ## Application configuration
 
-These guides let you configure your deployment for your particular use case and needs,
-covering how the charm serves and routes requests and delivers content.
+Configure your deployment for your particular use case and needs,
+including how the charm serves and routes requests and delivers content.
 
 - {ref}`Set the base URL <how_to_set_base_url>`
 - {ref}`Limit paste size <how_to_limit_paste_size>`
