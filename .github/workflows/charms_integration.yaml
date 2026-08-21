@@ -13,7 +13,7 @@ on:
 jobs:
   integration-test:
     name: Integration Tests
-    uses: canonical/charm-ci/.github/workflows/integration-test.yml@main
+    uses: canonical/charm-ci/.github/workflows/integration-test.yml@v0.0.1-alpha.10
     permissions:
       contents: read
       packages: write
