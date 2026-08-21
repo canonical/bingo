@@ -82,3 +82,32 @@ def test_config_changed_oauth_redirect_path_default_not_blocked_by_guard(
     # but it must not be blocked specifically for oauth-redirect-path.
     if state_out.unit_status.name == "blocked":
         assert "oauth-redirect-path" not in state_out.unit_status.message
+
+
+def test_base_url_config_overrides_ingress_derived_default(ctx: testing.Context) -> None:
+    """The `base-url` config, when set, must win over paas_charm's ingress-derived default.
+
+    paas_charm.go.Charm._base_url always resolves to the ingress URL (or the
+    in-cluster K8s service URL as a fallback), regardless of any user config.
+    BingoCharm overrides this so operators can point generated paste links at a
+    public DNS name that fronts the ingress, per the set-base-url how-to guide.
+    """
+    container = testing.Container("app", can_connect=True)
+    state_in = testing.State(
+        containers={container},
+        config={"base-url": "https://paste.example.com"},
+        leader=True,
+    )
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        assert manager.charm._base_url == "https://paste.example.com"
+
+
+def test_base_url_config_empty_falls_back_to_ingress_default(ctx: testing.Context) -> None:
+    """With no `base-url` config set, the charm must fall back to paas_charm's default."""
+    container = testing.Container("app", can_connect=True)
+    state_in = testing.State(containers={container}, leader=True)
+    with ctx(ctx.on.config_changed(), state_in) as manager:
+        # No ingress relation is present, so this falls back to the in-cluster
+        # K8s service URL rather than a hardcoded expectation.
+        assert manager.charm._base_url.startswith("http://")
+        assert "paste.example.com" not in manager.charm._base_url

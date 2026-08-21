@@ -8,6 +8,7 @@ Furo
 github
 GitHub
 GPG
+hardcode(d)?
 hotfix(es)?
 html
 https
@@ -33,11 +34,13 @@ Rockcraft
 rst
 rtd
 Sphinx
+stdout
 subproject
 subprojects
 toctree
 txt
 uncomment(ing)?
+URIs?
 URL
 utils
 venv
@@ -57,4 +60,5 @@ OAuth
 Ory('s)?
 pastebin
 unprefixed
+userinfo
 
