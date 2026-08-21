@@ -10,7 +10,7 @@ myst:
 
 Configuring where bingo serves its built React frontend (SPA) assets from enables you to
 accommodate a custom workload image whose build process bakes the assets into a
-non-default directory, or to disable static file serving entirely when you host the
+non-default directory. Additionally, you can disable static file serving entirely when you host the
 frontend separately (for example, on a CDN) and want bingo to serve only the API.
 
 ## Configure the web assets directory

@@ -15,12 +15,17 @@ through ingress, rather than links pointing at an internal or unreachable addres
 ## Prerequisites
 
 Deploy the bingo charm and, if you want pastes to be reachable externally, an ingress provider
-such as [`traefik-k8s`](https://charmhub.io/traefik-k8s).
+such as [`traefik-k8s`](https://charmhub.io/traefik-k8s) integrated over the charm's `ingress`
+relation endpoint.
 
 ```
 juju deploy bingo
 juju deploy traefik-k8s --trust
 juju integrate bingo:ingress traefik-k8s:ingress
+```
+
+```{seealso}
+[`ingress` integrations on Charmhub](https://charmhub.io/integrations/ingress)
 ```
 
 ## Set the base URL

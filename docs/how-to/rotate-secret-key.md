@@ -10,8 +10,12 @@ myst:
 
 Rotating bingo's shared application secret key enables you to invalidate all existing OIDC
 session cookies at once, which is useful for responding to a suspected security breach or for
-following routine credential-hygiene practices. This secret is only used to sign and verify OIDC
+following routine credential-hygiene practices.
+
+```{note}
+This secret is only used to sign and verify OIDC
 session cookies. It is not used for CSRF tokens or any other purpose.
+```
 
 ## Rotate the secret key
 

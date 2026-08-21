@@ -15,7 +15,7 @@ Adjusting the log verbosity of the bingo application enables you to troubleshoot
 This charm exposes the `log-level` configuration option to control the verbosity of application
 logs. Accepted values are `debug`, `info`, `warn`, and `error`. The default is `info`.
 
-To increase verbosity for troubleshooting:
+To increase verbosity for troubleshooting, run:
 
 ```
 juju config bingo log-level=debug

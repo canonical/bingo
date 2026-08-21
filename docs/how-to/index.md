@@ -16,45 +16,28 @@ aggregation.
 
 ## Application configuration
 
-<!--
-Themes: base URL and routing, paste size limits, frontend asset delivery, log verbosity
-Justification: shared operational concern — tuning the charm's `juju config` options that
-  control how the deployed application behaves and serves content
-User journey context: configuration phase, integration (ingress, log aggregation),
-  ongoing maintenance and troubleshooting
-Juju ecosystem scope: charm-specific (config options), cross-charm (ingress via traefik-k8s,
-  logging via loki-k8s)
--->
+These guides let you configure your deployment for your particular use case and needs,
+covering how the charm serves and routes requests and delivers content.
 
 - {ref}`Set the base URL <how_to_set_base_url>`
 - {ref}`Limit paste size <how_to_limit_paste_size>`
 - {ref}`Serve frontend assets <how_to_serve_frontend_assets>`
-- {ref}`Configure logging <how_to_configure_logging>`
 
 ## Authentication and security
 
-<!--
-Themes: OIDC/OAuth integration, secret key lifecycle, session security
-Justification: shared concern — securing access to the application and managing the
-  credential and session lifecycle
-User journey context: integration (identity provider), maintenance, security incident
-  response
-Juju ecosystem scope: cross-charm (oauth relation with identity provider), charm-specific
-  (rotate-secret-key action)
--->
+The charm comes with built-in security features to control access to the application and
+manage the credential and session lifecycle, from integrating with an identity provider to
+rotating secrets.
 
 - {ref}`Configure OIDC login <how_to_configure_oidc_login>`
 - {ref}`Rotate the secret key <how_to_rotate_secret_key>`
 
-## Advanced operations
+## Maintenance and development
 
-<!--
-Themes: documentation contribution workflow
-Justification: single-page topic without a shared peer — merged into fallback
-User journey context: not tied to the deployment lifecycle; documentation process
-Fallback: weaker thematic connection; narrative can be framed by the specific guide
--->
+These guides support the ongoing upkeep of the charm and its documentation, from tuning
+operational visibility to contributing to the project.
 
+- {ref}`Configure logging <how_to_configure_logging>`
 - {ref}`Contribute <how_to_contribute>`
 
 ```{toctree}
@@ -63,9 +46,9 @@ Fallback: weaker thematic connection; narrative can be framed by the specific gu
 
 Set the base URL <set-base-url>
 Limit paste size <limit-paste-size>
-Configure logging <configure-logging>
 Serve frontend assets <serve-frontend-assets>
 Configure OIDC login <configure-oidc-login>
 Rotate the secret key <rotate-secret-key>
+Configure logging <configure-logging>
 Contribute <contribute>
 ```
