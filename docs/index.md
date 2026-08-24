@@ -33,7 +33,7 @@ clean interface.
 
 This documentation uses the [Diátaxis documentation structure](https://diataxis.fr/).
 
-- The {ref}`Tutorial <tutorial_index>` takes you step-by-step through a basic deployment of
+- The {ref}`Tutorial <tutorial>` takes you step-by-step through a basic deployment of
   the bingo charm.
 - {ref}`How-to guides <how_to_index>` assume you have basic familiarity with the bingo
   charm. Learn more about setting up, using, maintaining, and contributing to this charm.
@@ -76,7 +76,7 @@ Thinking about using the bingo Operator for your next project?
 :hidden:
 :maxdepth: 1
 
-tutorial/index
+Tutorial <tutorial>
 how-to/index
 reference/index
 explanation/index
