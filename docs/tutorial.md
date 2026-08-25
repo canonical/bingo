@@ -26,8 +26,8 @@ multipass launch 24.04 --name bingo-tutorial-vm --cpus 4 --memory 8G --disk 50G
 This tutorial requires the following software to be installed on your working station
 (either locally or in the Multipass VM):
 
-- Juju 3
-- MicroK8s 1.33
+- [Juju](https://canonical.com/juju/docs/juju-cli/latest/howto/manage-juju/#) 3
+- [MicroK8s](https://canonical.com/microk8s/docs/getting-started)
 
 Use [Concierge](https://github.com/canonical/concierge) to set up Juju and MicroK8s:
 
@@ -52,7 +52,7 @@ juju bootstrap microk8s tutorial-controller
 ## What you'll do
 
 1. Deploy the bingo charm
-2. Integrate with the `postgresql-k8s` charm
+2. Integrate with the PostgreSQL charm
 3. Inspect the Kubernetes resources created
 4. Access the bingo app
 5. Clean up the environment
@@ -79,7 +79,7 @@ juju add-model bingo-tutorial
 
 ### Deploy the charms
 
-bingo requires a connection to PostgreSQL for persistent paste storage.
+bingo uses PostgreSQL for persistent paste storage.
 
 Deploy the charms:
 
@@ -122,16 +122,23 @@ postgresql-k8s:upgrade         postgresql-k8s:upgrade         upgrade           
 
 The deployment finishes when all the charms show `Active` states.
 
-Run `kubectl get pods -n bingo-tutorial` to see the pods that are being created by the charms:
+Run `kubectl get pods -n bingo-tutorial` to see the pods that Juju and the charms create:
 
 ```{terminal}
 :output-only:
 
 NAME                             READY   STATUS    RESTARTS   AGE
-modeloperator-c584f6f9f-qf9gr    1/1     Running   0          5m30s
+modeloperator-cc899c948-v4z9r    1/1     Running   0          5m30s
 bingo-0                          2/2     Running   0          5m1s
 postgresql-k8s-0                 2/2     Running   0          5m9s
 ```
+
+- `modeloperator-*` is a Juju-managed pod that lets the controller manage Kubernetes
+  resources for this model.
+- `bingo-0` and `postgresql-k8s-0` show `2/2` because each unit runs two containers: the
+  application itself, and the charm code that manages it.
+
+(kubectl_permissions_note)=
 
 ```{note}
 If you get an "insufficient permissions" error running `kubectl` inside the Multipass VM,
@@ -151,15 +158,24 @@ deployed workload, forward the port to your working station:
 microk8s kubectl port-forward --address 0.0.0.0 service/bingo 8080:8080 -n bingo-tutorial
 ```
 
-If you're following the tutorial locally, open `http://localhost:8080` in your browser.
+If you get an "insufficient permissions" error, see the {ref}`note above <kubectl_permissions_note>`.
 
-If you're using a Multipass VM, find its IP with `multipass info bingo-tutorial-vm` and
-navigate to `http://<vm-ip>:8080`.
+This command keeps running in the foreground to maintain the port forward, so leave it
+running.
+
+If you're following the tutorial locally, navigate to `http://localhost:8080` in your browser.
+
+If you're using a Multipass VM, open a new terminal window on your host machine and run 
+`multipass info bingo-tutorial-vm` to find its IP, then navigate to `http://<vm-ip>:8080`.
+
+If the deployment is working correctly, you should see the bingo web interface with a
+"New paste" form, ready to accept text and create a shareable paste link.
 
 ### Clean up the environment
 
-Congratulations! You have successfully finished the bingo tutorial. You can now remove the
-model environment that you've created using the following command:
+Congratulations! You've deployed the bingo charm, integrated it with a PostgreSQL database,
+and accessed the app in your browser. You can now remove the model environment that you've
+created using the following command:
 
 ```
 juju destroy-model bingo-tutorial --destroy-storage
