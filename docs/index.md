@@ -29,6 +29,24 @@ from [MicroK8s](https://canonical.com/microk8s) to
 This charm will make operating bingo straightforward for DevOps or SRE teams through Juju's
 clean interface.
 
+## In this documentation
+
+```{list-table}
+:header-rows: 1
+:widths: 10 25
+
+* -
+  -
+* - **Get started**
+  - {ref}`Guided tutorial <tutorial>`
+* - **Deployment**
+  - {ref}`Set the base URL <how_to_set_base_url>` | {ref}`Limit paste size <how_to_limit_paste_size>` | {ref}`Serve frontend assets <how_to_serve_frontend_assets>`
+* - **Operations**
+  - {ref}`Configure logging <how_to_configure_logging>`
+* - **Security**
+  - {ref}`Configure OIDC login <how_to_configure_oidc_login>` | {ref}`Rotate the secret key <how_to_rotate_secret_key>`
+```
+
 ## How this documentation is organized
 
 This documentation uses the [Diátaxis documentation structure](https://diataxis.fr/).
