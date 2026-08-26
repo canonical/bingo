@@ -158,10 +158,8 @@ deployed workload, forward the port to your working station:
 microk8s kubectl port-forward --address 0.0.0.0 service/bingo 8080:8080 -n bingo-tutorial
 ```
 
-If you get an "insufficient permissions" error, see the {ref}`note above <kubectl_permissions_note>`.
-
-This command keeps running in the foreground to maintain the port forward, so leave it
-running.
+This command runs in the foreground to maintain the port forward, so leave it
+running. If you get an "insufficient permissions" error, see the {ref}`note above <kubectl_permissions_note>`.
 
 If you're following the tutorial locally, navigate to `http://localhost:8080` in your browser.
 
@@ -193,8 +191,7 @@ You achieved a basic deployment of the bingo charm. If you want to go further in
 or learn more about the charm, check out these pages:
 
 - Perform basic operations with your deployment, such as configuring the
-  {ref}`base URL <how_to_set_base_url>` for generated paste links, or
-  {ref}`rotating the session secret <how_to_rotate_secret_key>`.
+  {ref}`base URL <how_to_set_base_url>` for generated paste links.
 - Expose bingo externally by integrating it with the
   [Traefik](https://charmhub.io/traefik-k8s) charm over the `ingress` relation.
 - Learn more about the charm's actions, configuration options, and integration
