@@ -12,7 +12,7 @@ rocks:
 charms:
   - name: bingo
     charmcraft-yaml: charm/charmcraft.yaml
-    channel: latest/edge
+    channel: 1/edge
     resources:
       app-image:
         type: oci-image
