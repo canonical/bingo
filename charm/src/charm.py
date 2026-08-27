@@ -47,6 +47,23 @@ class BingoCharm(paas_charm.go.Charm):
                 "the app's callback route is fixed and not configurable"
             )
 
+    @property
+    def _base_url(self) -> str:
+        """Return the base_url for the service.
+
+        paas_charm.go.Charm._base_url always resolves to the ingress URL (falling
+        back to the in-cluster K8s service URL), ignoring any user-supplied value.
+        The bingo-specific `base-url` config option exists precisely so operators
+        can override the externally-visible link text used in generated paste
+        URLs (e.g. a public DNS name fronting the ingress), so it must take
+        priority here. Without this override, `juju config bingo base-url=...`
+        would be silently ignored whenever an ingress relation is present.
+        """
+        base_url = typing.cast(str, self.config.get("base-url", ""))
+        if base_url:
+            return base_url
+        return super()._base_url
+
 
 if __name__ == "__main__":  # pragma: nocover
     ops.main(BingoCharm)

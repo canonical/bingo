@@ -62,11 +62,23 @@ Required relations:
 | `grafana-dashboard` | `grafana_dashboard` | No | Pre-built dashboards |
 | `tracing` | `tracing` | No | Distributed tracing |
 
+## Terraform module
+
+A reusable [Terraform][terraform] module for deploying bingo via the
+[Juju Terraform provider][juju-terraform-provider] is available in
+[`terraform/`](terraform/README.md) (application only) and
+[`terraform/product/`](terraform/product/README.md) (model + application +
+bundled dependencies + relations — a full working deployment).
+
+[terraform]: https://developer.hashicorp.com/terraform
+[juju-terraform-provider]: https://registry.terraform.io/providers/juju/juju/latest/docs
+
 ## Project and community
 
 * [Issues](https://github.com/canonical/bingo/issues)
 * [Contributing](CONTRIBUTING.md)
 * [Matrix](https://matrix.to/#/#charmhub-charmdev:ubuntu.com)
+* [License](LICENSE) (Apache 2.0)
 
 ## Documentation
 
