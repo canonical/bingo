@@ -2,9 +2,16 @@
 # Delegates to charm-ci publish-artifacts.yml which calls opcli to upload
 # the built rock and charm to their respective registries.
 # Reference: https://github.com/canonical/charm-ci/.github/workflows/publish-artifacts.yml
+#
+# Runs automatically on every push to main, publishing to the unstable
+# (1/edge) channel configured per-charm in artifacts.yaml. Can also be
+# triggered manually to publish to a different channel (e.g. 1/stable).
 name: Publish Charms
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
     inputs:
       channel:
