@@ -40,6 +40,7 @@ assumes:
 requires:
   postgresql:
     interface: postgresql_client
+    optional: false
     limit: 1
   tracing:
     interface: tracing

@@ -30,6 +30,9 @@ _TEMPO_WORKER_CHANNEL = "2/edge"
 _TEMPO_COORDINATOR_CHANNEL = "2/edge"
 _MINIO_CHANNEL = "edge"
 _S3_INTEGRATOR_CHANNEL = "edge"
+_PROMETHEUS_CHANNEL = "2/stable"
+_GRAFANA_CHANNEL = "2/stable"
+_LOKI_CHANNEL = "2/stable"
 
 
 @pytest.mark.juju_setup
@@ -246,3 +249,73 @@ def test_tracing_integration(juju: jubilant.Juju) -> None:
     status = juju.status()
     assert status.apps["bingo"].relations.get("tracing"), "bingo:tracing relation not established"
     logger.info("bingo:tracing relation is active")
+
+
+def test_logging_integration(juju: jubilant.Juju) -> None:
+    """Integrate bingo with Loki over the logging relation.
+
+    arrange: deploy loki-k8s.
+    act: integrate bingo:logging with loki:logging.
+    assert: both bingo and loki settle to active with the relation established.
+    """
+    juju.deploy("loki-k8s", app="loki", channel=_LOKI_CHANNEL, trust=True)
+    juju.wait(lambda status: jubilant.all_active(status, "loki"), timeout=600, delay=10)
+
+    juju.integrate("bingo:logging", "loki:logging")
+    juju.wait(
+        lambda status: jubilant.all_active(status, "bingo", "loki"),
+        timeout=600,
+        delay=10,
+    )
+
+    status = juju.status()
+    assert status.apps["bingo"].relations.get("logging"), "bingo:logging relation not established"
+    logger.info("bingo:logging relation is active")
+
+
+def test_metrics_endpoint_integration(juju: jubilant.Juju) -> None:
+    """Integrate bingo with Prometheus over the metrics-endpoint relation.
+
+    arrange: deploy prometheus-k8s.
+    act: integrate bingo:metrics-endpoint with prometheus:metrics-endpoint.
+    assert: both bingo and prometheus settle to active with the relation established.
+    """
+    juju.deploy("prometheus-k8s", app="prometheus", channel=_PROMETHEUS_CHANNEL, trust=True)
+    juju.wait(lambda status: jubilant.all_active(status, "prometheus"), timeout=600, delay=10)
+
+    juju.integrate("bingo:metrics-endpoint", "prometheus:metrics-endpoint")
+    juju.wait(
+        lambda status: jubilant.all_active(status, "bingo", "prometheus"),
+        timeout=600,
+        delay=10,
+    )
+
+    status = juju.status()
+    assert status.apps["bingo"].relations.get("metrics-endpoint"), (
+        "bingo:metrics-endpoint relation not established"
+    )
+    logger.info("bingo:metrics-endpoint relation is active")
+
+
+def test_grafana_dashboard_integration(juju: jubilant.Juju) -> None:
+    """Integrate bingo with Grafana over the grafana-dashboard relation.
+
+    arrange: deploy grafana-k8s.
+    act: integrate bingo:grafana-dashboard with grafana:grafana-dashboard.
+    assert: both bingo and grafana settle to active with the relation established.
+    """
+    juju.deploy("grafana-k8s", app="grafana", channel=_GRAFANA_CHANNEL, trust=True)
+    juju.wait(lambda status: jubilant.all_active(status, "grafana"), timeout=600, delay=10)
+
+    juju.integrate("bingo:grafana-dashboard", "grafana:grafana-dashboard")
+    juju.wait(
+        lambda status: jubilant.all_active(status, "bingo", "grafana"),
+        timeout=600,
+        delay=10,
+    )
+
+    status = juju.status()
+    assert status.apps["bingo"].relations.get("grafana-dashboard"), (
+        "bingo:grafana-dashboard relation not established"
+    )
+    logger.info("bingo:grafana-dashboard relation is active")
