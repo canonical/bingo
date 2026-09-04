@@ -23,8 +23,7 @@ vulnerabilities.
   security fixes from the dependencies and the workload, as the charm dependencies are regularly
   updated.
 - Regularly update Juju to the latest version to include security fixes.
-- Deploy observability, like the
-  [Canonical Observability Stack](https://documentation.ubuntu.com/observability/latest/how-to/deploy-and-manage/install/),
+- Deploy observability, like the {ref}`Canonical Observability Stack <observability:deploy-and-manage>`,
   to detect any unusual behaviors.
 
 ## Loss of data
@@ -35,7 +34,7 @@ corruption of the database results in permanent loss of all pastes.
 ### Best practices
 
 - Use a dedicated Charmed PostgreSQL deployment and regularly back up the database through the
-  charm's [backup action](https://canonical.com/data/postgresql/docs/latest/how-to/back-up-and-restore/create-a-backup/).
+  charm's {ref}`backup action <postgresql:create-a-backup>`.
 
 <!-- vale Canonical.007-Headings-sentence-case = NO -->
 <!-- DOS is an acronym -->
@@ -64,13 +63,14 @@ charm's ingress integration (Traefik) to provide encryption. Unless TLS is termi
 ingress, traffic between `bingo` and its clients is unencrypted, risking eavesdropping and
 tampering.
 
-`bingo`'s session and CSRF cookies are always set with `Secure: true`, so browsers
-silently drop them over plain HTTP and authentication breaks without any visible error.
+`bingo`'s session and CSRF cookies are always set with `Secure: true`, so browsers silently drop
+these cookies over plain HTTP and authentication breaks without any visible error.
 
 ### Best practices
 
 - Terminate TLS at the ingress, for example by integrating [Traefik](https://charmhub.io/traefik-k8s)
-  with a TLS provider or cert-manager. This is required both for usability and to protect session
+  with a TLS provider or [cert-manager](https://cert-manager.io/). This is required both for
+  usability and to protect session
   cookies from interception.
 
 ## Confidentiality of pastes
@@ -90,7 +90,7 @@ Confidentiality of pastes relies on OIDC authentication (when configured) and li
   `bingo`.
 - Recommend short expiry values (`1d` or `1w`) over long-lived ones (`1y`) when creating pastes,
   since paste services routinely receive accidentally shared secrets or credentials.
-- Authenticated paste owners can delete their own pastes once they are no longer needed, rather
+- Authenticated paste owners should delete their own pastes once they are no longer needed, rather
   than waiting for expiry.
 
 ## Secret key hygiene

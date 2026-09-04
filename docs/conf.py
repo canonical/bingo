@@ -297,4 +297,6 @@ rst_prolog = """
 intersphinx_mapping = {
     "juju": ("https://canonical.com/juju/docs/juju-cli/3.6/", None),
     "starter-pack": ("https://canonical-starter-pack.readthedocs-hosted.com/stable/", None),
+    "observability": ("https://documentation.ubuntu.com/observability/latest/", None),
+    "postgresql": ("https://canonical.com/data/postgresql/docs/latest/", None),
 }

@@ -44,7 +44,7 @@ clean interface.
 * - **Operations**
   - {ref}`Configure logging <how_to_configure_logging>`
 * - **Security**
-  - {ref}`Configure OIDC login <how_to_configure_oidc_login>` | {ref}`Rotate the secret key <how_to_rotate_secret_key>` | {ref}`Security overview <explanation_security>`
+  - {ref}`Overview <explanation_security>` | {ref}`Configure OIDC login <how_to_configure_oidc_login>` | {ref}`Rotate the secret key <how_to_rotate_secret_key>`
 ```
 
 ## How this documentation is organized
