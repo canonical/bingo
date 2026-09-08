@@ -23,7 +23,7 @@ The `grafana-dashboard` relation ships a pre-built [Grafana](https://grafana.com
 dashboard for `bingo` so operators can
 monitor the charm without building one from scratch. Once related, the dashboard appears in
 Grafana's dashboard browser (`/dashboards`). Edits made in the Grafana UI are not persisted
-across charm upgrades or redeployments.
+across charm upgrades or when the charm is redeployed.
 
 Example `grafana-dashboard` integrate command:
 
