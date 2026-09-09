@@ -51,7 +51,7 @@ juju integrate bingo:ingress traefik-k8s:ingress
 ```
 
 To route through a shared HAProxy instance offered from another model instead, consume the
-offer, deploy `ingress-configurator`, and relate `bingo` → `ingress-configurator` → the
+offer, deploy `ingress-configurator`, and integrate `bingo` → `ingress-configurator` → the
 consumed offer:
 
 ```
