@@ -56,7 +56,8 @@ Required relations:
 | Endpoint | Interface | Required | Purpose |
 |---|---|---|---|
 | `postgresql` | `postgresql_client` | Yes | Persistent paste storage |
-| `ingress` | `ingress` | Required for external access | External HTTP access via Traefik |
+| `ingress` | `ingress` | Required for external access | External HTTP access via Traefik or ingress-configurator |
+| `oauth` | `oauth` | No | OIDC login via the Canonical Identity Platform (Hydra) |
 | `logging` | `loki_push_api` | No | Log forwarding to Loki |
 | `metrics-endpoint` | `prometheus_scrape` | No | Metrics scraping |
 | `grafana-dashboard` | `grafana_dashboard` | No | Pre-built dashboards |
