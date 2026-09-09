@@ -21,7 +21,7 @@ _Supported charms_: [`grafana-k8s`](https://charmhub.io/grafana-k8s)
 
 The `grafana-dashboard` relation ships a pre-built [Grafana](https://grafana.com/oss/grafana/)
 dashboard for `bingo` so operators can
-monitor the charm without building one from scratch. Once related, the dashboard appears in
+monitor the charm without building one from scratch. Once integrated, the dashboard appears in
 Grafana's dashboard browser (`/dashboards`). Edits made in the Grafana UI are not persisted
 across charm upgrades or when the charm is redeployed.
 
