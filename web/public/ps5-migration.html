@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>This pastebin is moving — bingo</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <style>
+      /*
+       * Deliberately self-contained (no external stylesheet/CDN, no build
+       * step). This page is meant to be the first, most resilient thing a
+       * user sees when landing on a legacy PS5 pastebin instance, so it
+       * should keep working even if bingo's own CSS bundle or an external
+       * CDN is briefly unavailable.
+       */
+      :root {
+        color-scheme: light;
+      }
+
+      body {
+        margin: 0;
+        font-family:
+          'Ubuntu',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        color: #111;
+        background: #fff;
+        line-height: 1.5;
+      }
+
+      header {
+        background: #2c001e;
+        color: #fff;
+        padding: 1rem 1.5rem;
+      }
+
+      header .brand {
+        font-size: 1.25rem;
+        font-weight: 500;
+      }
+
+      main {
+        max-width: 40rem;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 3rem;
+      }
+
+      h1 {
+        font-size: 1.75rem;
+        margin-bottom: 0.5rem;
+      }
+
+      .notice {
+        border-left: 4px solid #e95420;
+        background: #fdf3ee;
+        padding: 1rem 1.25rem;
+        margin: 1.5rem 0;
+      }
+
+      .actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem;
+        margin-top: 2rem;
+      }
+
+      .button {
+        display: inline-block;
+        padding: 0.6rem 1.2rem;
+        border-radius: 3px;
+        text-decoration: none;
+        font-weight: 500;
+        border: 1px solid transparent;
+      }
+
+      .button--primary {
+        background: #e95420;
+        color: #fff;
+      }
+
+      .button--secondary {
+        background: transparent;
+        color: #333;
+        border-color: #999;
+      }
+
+      footer {
+        max-width: 40rem;
+        margin: 0 auto;
+        padding: 0 1.5rem 2rem;
+        font-size: 0.875rem;
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <header>
+      <span class="brand">pastebin</span>
+    </header>
+    <main>
+      <h1>This pastebin is moving</h1>
+      <p>
+        The legacy Canonical and Ubuntu pastebin instances (PS5) are being retired in favour of
+        <strong>bingo</strong>, their replacement.
+      </p>
+
+      <div class="notice">
+        <strong>Decommission timeline:</strong>
+        <!-- TODO(IS): confirm and fill in the actual decommission date -->
+        legacy instances will be retired on <strong>[DECOMMISSION DATE]</strong>. Until then, they
+        remain available in <strong>read-only</strong> mode — existing pastes can still be viewed,
+        but new pastes can no longer be created there.
+      </div>
+
+      <p>Please migrate to bingo for any new pastes going forward.</p>
+
+      <div class="actions">
+        <a class="button button--primary" href="/">Go to bingo</a>
+        <!-- TODO(IS): confirm final legacy instance URLs before launch -->
+        <a class="button button--secondary" href="https://pastebin.canonical.com/">
+          Continue to Canonical Pastebin (read-only)
+        </a>
+        <a class="button button--secondary" href="https://pastebin.ubuntu.com/">
+          Continue to Ubuntu Pastebin (read-only)
+        </a>
+      </div>
+    </main>
+    <footer>
+      &copy; <span id="year"></span> Canonical Ltd. Ubuntu and Canonical are registered trademarks
+      of Canonical Ltd.
+    </footer>
+    <script>
+      document.getElementById('year').textContent = new Date().getFullYear()
+    </script>
+  </body>
+</html>
