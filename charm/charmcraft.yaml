@@ -1,6 +1,7 @@
 # charmcraft.yaml — bingo charm using the go-framework extension.
 # See https://documentation.ubuntu.com/charmcraft/stable/reference/files/charmcraft-yaml-file/
 name: bingo
+title: bingo — Canonical Pastebin
 
 type: charm
 
@@ -15,6 +16,9 @@ description: |
   React frontend styled with Canonical's Vanilla Framework / Pragma components.
 links:
   documentation: https://canonical-bingo.readthedocs-hosted.com/latest/
+  issues: https://github.com/canonical/bingo/issues
+  source: https://github.com/canonical/bingo
+  contact: https://matrix.to/#/#charmhub-charmdev:ubuntu.com
 
 extensions:
   - go-framework

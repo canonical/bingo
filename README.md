@@ -18,7 +18,7 @@ bingo requires a database for persistent storage, and it supports an ingress rel
 
 ```bash
 juju add-model bingo
-juju deploy bingo --resource app-image=<oci-image>
+juju deploy bingo --channel 1/stable
 juju integrate bingo postgresql-k8s
 juju integrate bingo traefik-k8s
 ```
