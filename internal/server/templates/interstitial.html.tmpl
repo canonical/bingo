@@ -3,15 +3,14 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>This pastebin is moving — bingo</title>
-    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <title>This pastebin is moving — Pastebin</title>
     <style>
       /*
        * Deliberately self-contained (no external stylesheet/CDN, no build
        * step). This page is meant to be the first, most resilient thing a
-       * user sees when landing on a legacy PS5 pastebin instance, so it
-       * should keep working even if bingo's own CSS bundle or an external
-       * CDN is briefly unavailable.
+       * user sees when landing on the legacy PS5 pastebin's former
+       * hostname, so it should keep working even if bingo's own CSS bundle
+       * or an external CDN is briefly unavailable.
        */
       :root {
         color-scheme: light;
@@ -103,34 +102,30 @@
     <main>
       <h1>This pastebin is moving</h1>
       <p>
-        The legacy Canonical and Ubuntu pastebin instances (PS5) are being retired in favour of
-        <strong>bingo</strong>, their replacement.
+        This legacy pastebin is being replaced by a new Pastebin, powered by <strong>bingo</strong>.
       </p>
 
       <div class="notice">
         <strong>Decommission timeline:</strong>
-        <!-- TODO(IS): confirm and fill in the actual decommission date -->
-        legacy instances will be retired on <strong>[DECOMMISSION DATE]</strong>. Until then, they
-        remain available in <strong>read-only</strong> mode — existing pastes can still be viewed,
-        but new pastes can no longer be created there.
+        {{if .DecommissionDate}}
+          the legacy instance will be retired on <strong>{{.DecommissionDate}}</strong>.
+        {{else}}
+          the legacy instance will be retired on <strong>[DECOMMISSION DATE]</strong>.
+        {{end}}
+        Until then, it remains available in <strong>read-only</strong> mode — existing pastes can still
+        be viewed, but new pastes can no longer be created there.
       </div>
 
-      <p>Please migrate to bingo for any new pastes going forward.</p>
+      <p>Please use the new Pastebin for any new pastes going forward.</p>
 
       <div class="actions">
-        <a class="button button--primary" href="/">Go to bingo</a>
-        <!-- TODO(IS): confirm final legacy instance URLs before launch -->
-        <a class="button button--secondary" href="https://pastebin.canonical.com/">
-          Continue to Canonical Pastebin (read-only)
-        </a>
-        <a class="button button--secondary" href="https://pastebin.ubuntu.com/">
-          Continue to Ubuntu Pastebin (read-only)
-        </a>
+        <a class="button button--primary" href="{{.ContinueURL}}">Go to new Pastebin</a>
+        <a class="button button--secondary" href="{{.LegacyURL}}">Continue to legacy pastebin (read-only)</a>
       </div>
     </main>
     <footer>
-      &copy; <span id="year"></span> Canonical Ltd. Ubuntu and Canonical are registered trademarks
-      of Canonical Ltd.
+      &copy; <span id="year"></span> Canonical Ltd. Ubuntu and Canonical are registered trademarks of
+      Canonical Ltd.
     </footer>
     <script>
       document.getElementById('year').textContent = new Date().getFullYear()
