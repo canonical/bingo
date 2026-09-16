@@ -37,7 +37,7 @@ copyright = f"{datetime.date.today().year}"
 html_title = project + " documentation"
 
 # Documentation website URL
-ogp_site_url = "https://canonical.com/bingo/docs/"
+ogp_site_url = "https://canonical.com/juju/docs/bingo-charm/"
 
 # Preview name of the documentation website
 # TODO: To use a different name for the project in previews, update the next line.
@@ -114,14 +114,14 @@ html_theme_options = {
 # Project slug
 # TODO: If your documentation is hosted on https://documentation.ubuntu.com/,
 #       uncomment and set to the RTD slug.
-slug = "bingo/docs"
+slug = "juju/docs/bingo-charm"
 
 #######################
 # Sitemap configuration: https://sphinx-sitemap.readthedocs.io/
 #######################
 
 # Use RTD canonical URL to ensure duplicate pages have a specific canonical URL
-html_baseurl = "https://canonical.com/bingo/docs/"
+html_baseurl = "https://canonical.com/juju/docs/bingo-charm/"
 
 # sphinx-sitemap uses html_baseurl to generate the full URL for each page:
 sitemap_url_scheme = "{link}"
