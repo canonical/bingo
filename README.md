@@ -85,7 +85,7 @@ bundled dependencies + relations — a full working deployment).
 
 Our documentation is stored in the `docs` directory.
 It is based on the Canonical starter pack
-and hosted on [Read the Docs](https://canonical-bingo.readthedocs-hosted.com/latest/). In structuring,
+and hosted on [Read the Docs](https://canonical.com/juju/docs/bingo-charm/latest/). In structuring,
 the documentation employs the [Diátaxis](https://diataxis.fr/) approach.
 
 You may open a pull request with your documentation changes, or you can
