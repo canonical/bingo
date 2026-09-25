@@ -35,8 +35,17 @@ integration-suites:
   charm/tests/integration/:
     <<: *pytest-args
     working-dir: ./
-    summary: bingo charm integration tests (MicroK8s)
+    summary: bingo charm integration tests (Juju 3, Canonical Kubernetes)
     backends:
       - integration-test
     environment:
       CONCIERGE: concierge.yaml
+  charm/tests/integration-juju4/:
+    <<: *pytest-args
+    working-dir: ./
+    discover-path: charm/tests/integration/
+    summary: bingo charm integration tests (Juju 4, Canonical Kubernetes)
+    backends:
+      - integration-test
+    environment:
+      CONCIERGE: concierge-juju4.yaml

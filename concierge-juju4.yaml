@@ -1,8 +1,8 @@
-# concierge.yaml — environment provisioning for charm integration tests.
-# Bootstraps Canonical Kubernetes (k8s) and Juju 3.6 for k8s charm deployment.
+# concierge-juju4.yaml — environment provisioning for Juju 4 integration tests.
+# Bootstraps Canonical Kubernetes (k8s) and Juju 4 for k8s charm deployment.
 # Reference: https://github.com/canonical/charm-ci/examples/concierge-k8s.yaml
 juju:
-  channel: 3.6/stable
+  channel: 4.0/edge
   model-defaults:
     test-mode: "true"
     automatically-retry-hooks: "false"
