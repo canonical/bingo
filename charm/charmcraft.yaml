@@ -15,7 +15,7 @@ description: |
   expiry, optional OIDC authentication (Canonical Identity Platform), and a
   React frontend styled with Canonical's Vanilla Framework / Pragma components.
 links:
-  documentation: https://canonical-bingo.readthedocs-hosted.com/latest/
+  documentation: https://canonical.com/juju/docs/bingo-charm/latest/
   issues: https://github.com/canonical/bingo/issues
   source: https://github.com/canonical/bingo
   contact: https://matrix.to/#/#charmhub-charmdev:ubuntu.com
