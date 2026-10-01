@@ -46,6 +46,26 @@ the main package lives at `cmd/bingo/` rather than the module root, and the prod
 of the React frontend is staged into the image under `/app/web/dist`, served by the binary as a
 single-page application when the `web-dir` configuration option is set.
 
+(charm_architecture_code_overview)=
+
+## Charm code overview
+
+[`charm/src/charm.py`](https://github.com/canonical/bingo/blob/main/charm/src/charm.py) defines
+the `BingoCharm` class, which inherits from `paas_charm.go.Charm` (itself a `PaasCharm` subclass;
+see the generic
+[charm code overview](https://canonical.com/juju/docs/12-factor/latest/reference/charm-architecture/#charm-code-overview)
+for how `PaasCharm.__init__` wires up event observers). `BingoCharm` adds two customizations on top
+of the inherited behavior:
+
+- It observes `config_changed` a second time (after the parent class's own handler) to block the
+  unit if `oauth-redirect-path` has been changed away from its required fixed value
+  (`/auth/callback`) - bingo's OIDC callback route is hardcoded and does not read that
+  configuration option.
+- It overrides the `_base_url` property so that the `base-url` configuration option, when set, takes
+  priority over the ingress-derived URL that `paas_charm.go.Charm._base_url` would otherwise
+  always return, letting operators control the externally-visible link text used in generated
+  paste URLs.
+
 ## Juju events
 
 bingo's [`charmcraft.yaml`](https://github.com/canonical/bingo/blob/main/charm/charmcraft.yaml)
@@ -65,34 +85,16 @@ Events tied to the other integrations `paas-charm` supports never occur, since b
 [`charmcraft.yaml`](https://github.com/canonical/bingo/blob/main/charm/charmcraft.yaml) doesn't
 declare those relations.
 
-On top of the generic response described in the events
-reference, two behaviors are specific to bingo:
+On top of the generic response described in the events reference, two behaviors are specific to
+bingo:
 
-- On every `config_changed` event, after the inherited handler validates configuration and
-  restarts the workload, `BingoCharm`'s own observer blocks the unit if `oauth-redirect-path` was
-  changed away from its required fixed value (`/auth/callback`) - bingo's OIDC callback route is
-  hardcoded and does not read that configuration option.
-- The generic events reference describes "run pending migrations" as part of the standard
-  response. bingo ships no migrate script in its image, so
-  `paas-charm`'s own migration runner never actually executes anything for bingo. The `bingo`
-  binary instead applies its own migrations internally on every process start (see
+- Every `config_changed` event also validates `oauth-redirect-path`: if it has been changed away
+  from its required fixed value, the unit is blocked (see {ref}`Charm code overview
+  <charm_architecture_code_overview>` above).
+- No event ever triggers `paas-charm`'s migration runner, since bingo ships no migrate script in
+  its image - the `bingo` binary instead applies its own migrations internally on every process
+  start (see
   [`database.Migrate` in `cmd/bingo/main.go`](https://github.com/canonical/bingo/blob/main/cmd/bingo/main.go)).
-
-## Charm code overview
-
-[`charm/src/charm.py`](https://github.com/canonical/bingo/blob/main/charm/src/charm.py) defines
-the `BingoCharm` class, which inherits from `paas_charm.go.Charm` (itself a `PaasCharm` subclass;
-see the generic
-[charm code overview](https://canonical.com/juju/docs/12-factor/latest/reference/charm-architecture/#charm-code-overview)
-for how `PaasCharm.__init__` wires up event observers). `BingoCharm` adds two customizations on top
-of the inherited behavior:
-
-- It observes `config_changed` a second time (after the parent class's own handler) to block the
-  unit if `oauth-redirect-path` has been changed away from its required value, as described above.
-- It overrides the `_base_url` property so that the `base-url` configuration option, when set, takes
-  priority over the ingress-derived URL that `paas_charm.go.Charm._base_url` would otherwise
-  always return, letting operators control the externally-visible link text used in generated
-  paste URLs.
 
 See {ref}`Relation endpoints <reference_relation_endpoints>` for bingo's full list of relations,
 and {ref}`Charm <juju:charm>` for more on the charm lifecycle in general.
