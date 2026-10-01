@@ -43,7 +43,9 @@ uncomment(ing)?
 URIs?
 URL
 utils
+Valkey
 venv
+Vite
 VMs
 WCAG
 whitespace
