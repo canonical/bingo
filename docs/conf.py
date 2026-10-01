@@ -302,4 +302,5 @@ intersphinx_mapping = {
     "starter-pack": ("https://canonical-starter-pack.readthedocs-hosted.com/stable/", None),
     "observability": ("https://documentation.ubuntu.com/observability/latest/", None),
     "postgresql": ("https://canonical.com/data/postgresql/docs/latest/", None),
+    "12-factor": ("https://canonical.com/juju/docs/12-factor/latest/", None),
 }

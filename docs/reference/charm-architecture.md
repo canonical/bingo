@@ -11,17 +11,18 @@ myst:
 bingo is a Go application providing paste creation, retrieval, and expiry - a self-hosted
 pastebin service for Canonical. The charm is built with the
 [`go-framework` Charmcraft extension](https://canonical.com/juju/docs/charmcraft/latest/reference/extensions/go-framework-extension/),
-part of the [12-factor app support](https://canonical.com/juju/docs/12-factor/latest/) provided by
+part of the {doc}`12-factor app support <12-factor:index>` provided by
 Charmcraft/Rockcraft/`paas-charm`.
 
 The general container/sidecar layout, Pebble usage, and `PaasCharm` base class shared by every
 12-factor app charm are already documented centrally:
 
-- [Charm architecture](https://canonical.com/juju/docs/12-factor/latest/reference/charm-architecture/) - the sidecar pattern, the `app`/charm container split, and how OCI images are built with
-  Rockcraft.
-- [Juju events](https://canonical.com/juju/docs/12-factor/latest/reference/juju-events/) - the
-  full list of events any `paas-charm`-based charm may observe, and its default response to each.
-- [How 12-factor principles are applied](https://canonical.com/juju/docs/12-factor/latest/explanation/how-are-12-factor-principles-applied/) - why the framework works the way it does.
+- {ref}`Charm architecture <12-factor:ref_charm_architecture>` - the sidecar pattern, the
+  `app`/charm container split, and how OCI images are built with Rockcraft.
+- {ref}`Juju events <12-factor:ref_juju_events>` - the full list of events any `paas-charm`-based
+  charm may observe, and its default response to each.
+- {ref}`How 12-factor principles are applied <12-factor:explanation_12_factor_principles_applied>`
+  - why the framework works the way it does.
 
 This page only covers what's specific to bingo's deployment of that framework.
 
@@ -50,8 +51,8 @@ single-page application when the `web-dir` config option is set.
 bingo's `charmcraft.yaml` declares `postgresql` (required), `tracing` (optional), and `oauth`
 (optional) under `requires` (alongside the `logging`/`ingress`/`secret-storage` relations injected
 automatically by the `go-framework` extension). Of all the integration-related events listed in
-the [generic Juju events reference](https://canonical.com/juju/docs/12-factor/latest/reference/juju-events/),
-only the ones tied to those relations are ever fired for bingo:
+the {ref}`generic Juju events reference <12-factor:ref_juju_events>`, only the ones tied to those
+relations are ever fired for bingo:
 
 - PostgreSQL: `database_created`, `endpoints_changed`, `database_relation_broken`
 - OAuth: `oauth_info_changed`, `oauth_info_removed`
