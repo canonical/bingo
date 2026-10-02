@@ -43,6 +43,8 @@ clean interface.
   - {ref}`Set the base URL <how_to_set_base_url>` | {ref}`Limit paste size <how_to_limit_paste_size>` | {ref}`Serve frontend assets <how_to_serve_frontend_assets>`
 * - **Operations**
   - {ref}`Configure logging <how_to_configure_logging>`
+* - **Design**
+  - {ref}`Charm architecture <reference_charm_architecture>`
 * - **Security**
   - {ref}`Overview <explanation_security>` | {ref}`Configure OIDC login <how_to_configure_oidc_login>` | {ref}`Rotate the secret key <how_to_rotate_secret_key>`
 ```
