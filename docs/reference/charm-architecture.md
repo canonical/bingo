@@ -35,8 +35,8 @@ the `_daemon_` user with working directory `/app`, and listens on port `8080` by
 
 The binary reads its configuration from environment variables: charm configuration options (for
 example `base-url`, `max-paste-size-bytes`, `log-level`, `web-dir`) are injected as `APP_*`, while
-integration data is injected using each integration's own convention - for example
-`POSTGRESQL_DB_CONNECT_STRING` for the database, and standard `OTEL_*` variables for tracing.
+integration data is injected using each integration's own convention. For example,
+`POSTGRESQL_DB_CONNECT_STRING` is used for the database, and standard `OTEL_*` variables are used for tracing.
 
 The image is defined in [`rockcraft.yaml`](https://github.com/canonical/bingo/blob/main/rockcraft.yaml)
 at the repository root, using the
@@ -53,8 +53,9 @@ single-page application when the `web-dir` configuration option is set.
 [`charm/src/charm.py`](https://github.com/canonical/bingo/blob/main/charm/src/charm.py) defines
 the `BingoCharm` class, which inherits from `paas_charm.go.Charm` (itself a `PaasCharm` subclass;
 see the generic {ref}`charm code overview <12-factor:ref_charm_architecture_code_overview>`
-for how `PaasCharm.__init__` wires up event observers). `BingoCharm` adds two customizations on top
-of the inherited behavior:
+for how `PaasCharm.__init__` wires up event observers).
+
+`BingoCharm` adds two customizations on top of the inherited behavior:
 
 - It observes `config_changed` a second time (after the parent class's own handler) to block the
   unit if `oauth-redirect-path` has been changed away from its required fixed value
@@ -68,9 +69,9 @@ of the inherited behavior:
 ## Juju events
 
 bingo's [`charmcraft.yaml`](https://github.com/canonical/bingo/blob/main/charm/charmcraft.yaml)
-declares `postgresql`, `tracing`, and `oauth` under `requires` (alongside the
+declares `postgresql`, `tracing`, and `oauth` under `requires`, alongside the
 `logging`/`ingress`/`secret-storage` relations injected automatically by the `go-framework`
-extension). Of all the integration-related events listed in the {ref}`generic Juju events
+extension. Of all the integration-related events listed in the {ref}`generic Juju events
 reference <12-factor:ref_juju_events>`, only the ones tied to those relations are ever fired for
 bingo:
 
@@ -93,7 +94,7 @@ bingo:
 - No event ever triggers `paas-charm`'s migration runner, since bingo ships no migrate script in
   its image - the `bingo` binary instead applies its own migrations internally on every process
   start (see
-  [`database.Migrate` in `cmd/bingo/main.go`](https://github.com/canonical/bingo/blob/main/cmd/bingo/main.go)).
+  `database.Migrate` in [`cmd/bingo/main.go`](https://github.com/canonical/bingo/blob/main/cmd/bingo/main.go)).
 
 See {ref}`Relation endpoints <reference_relation_endpoints>` for bingo's full list of relations,
 and {ref}`Charm <juju:charm>` for more on the charm lifecycle in general.
