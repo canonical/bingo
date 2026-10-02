@@ -52,8 +52,7 @@ single-page application when the `web-dir` configuration option is set.
 
 [`charm/src/charm.py`](https://github.com/canonical/bingo/blob/main/charm/src/charm.py) defines
 the `BingoCharm` class, which inherits from `paas_charm.go.Charm` (itself a `PaasCharm` subclass;
-see the generic
-[charm code overview](https://canonical.com/juju/docs/12-factor/latest/reference/charm-architecture/#charm-code-overview)
+see the generic {ref}`charm code overview <12-factor:ref_charm_architecture_code_overview>`
 for how `PaasCharm.__init__` wires up event observers). `BingoCharm` adds two customizations on top
 of the inherited behavior:
 
