@@ -169,6 +169,12 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 // served with an injected <base> tag (see indexHTMLWithBase) so the SPA's
 // relative asset/API references resolve against the app's externally
 // visible base path rather than the proxy's domain root.
+//
+// When cfg.LegacyBaseURL is set (this bingo deployment has taken over the
+// legacy PS5 instance's public hostname), "/" and any unmatched path that
+// looks like a paste key but doesn't exist in bingo are served a migration
+// interstitial instead, offering a choice between bingo and the equivalent
+// path on the legacy instance. See serveInterstitial in interstitial.go.
 func (s *Server) serveStaticFiles(webDir string) {
 	fs := http.FileServer(http.Dir(webDir))
 	indexHTML, err := s.indexHTMLWithBase(webDir)
@@ -190,10 +196,25 @@ func (s *Server) serveStaticFiles(webDir string) {
 	s.mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		clean := filepath.Clean("/" + r.URL.Path)
 		if clean == "/" || clean == "/index.html" {
+			if s.cfg.LegacyBaseURL != "" && r.URL.Query().Get(continueQueryParam) == "" {
+				s.serveInterstitial(w, "/")
+				return
+			}
 			serveIndex(w, r)
 			return
 		}
 		if _, err := os.Stat(filepath.Join(webDir, clean)); os.IsNotExist(err) {
+			if s.cfg.LegacyBaseURL != "" && isCandidatePasteKey(clean) {
+				key := strings.TrimPrefix(clean, "/")
+				if _, getErr := s.repo.GetByKey(r.Context(), key); isPasteNotFound(getErr) {
+					s.serveInterstitial(w, clean)
+					return
+				}
+				// Paste exists in bingo, or GetByKey failed for some other
+				// reason: fall through to the normal SPA, which already
+				// knows how to render both the paste and its own error
+				// states.
+			}
 			serveIndex(w, r)
 			return
 		}

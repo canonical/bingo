@@ -27,6 +27,20 @@ type Config struct {
 	SessionSecret    string
 
 	WebDir string // WEB_DIR: path to web/dist; empty = disable static file serving
+
+	// LegacyBaseURL is the base URL of the legacy PS5 pastebin instance that
+	// this bingo deployment is replacing (e.g. when bingo takes over the
+	// same public hostname the legacy instance used to serve, such as
+	// pastebin.canonical.com). When set, the root path and any unmatched
+	// paste-key path are served a migration interstitial instead of bingo's
+	// normal UI, offering a choice between bingo and the equivalent path on
+	// the legacy instance. Empty disables this behaviour entirely.
+	LegacyBaseURL string
+
+	// PS5DecommissionDate is an optional human-readable decommission
+	// date/timeline shown on the migration interstitial (e.g.
+	// "31 October 2026"). Purely cosmetic; has no effect on behaviour.
+	PS5DecommissionDate string
 }
 
 // BasePath returns the URL path component of BaseURL, with any trailing
@@ -100,6 +114,9 @@ func Load() (*Config, error) {
 		OIDCRedirectURL:   oidcRedirectURL,
 		SessionSecret:     sessionSecret,
 		WebDir:            firstEnv("APP_WEB_DIR", "WEB_DIR"),
+
+		LegacyBaseURL:       firstEnv("APP_LEGACY_BASE_URL", "LEGACY_BASE_URL"),
+		PS5DecommissionDate: firstEnv("APP_PS5_DECOMMISSION_DATE", "PS5_DECOMMISSION_DATE"),
 	}
 
 	// Validate OIDC config: either all-or-nothing, and SESSION_SECRET required.
