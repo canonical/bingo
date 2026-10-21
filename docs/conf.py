@@ -20,61 +20,50 @@ import textwrap
 #######################
 
 # Project name
-# TODO: Update with the official name of your project or product (e.g., "Ubuntu Server")
 project = "bingo"
 
 # Author name; used in the default copyright statement in the page footer
 author = "Canonical Ltd."
 
-# Version
-version = f"{os.environ.get('READTHEDOCS_VERSION', 'local')}"
-
 # The year in the copyright statement
 copyright = f"{datetime.date.today().year}"
+
+# Version
+version = f"{os.environ.get('READTHEDOCS_VERSION', 'local')}"
 
 # Sidebar documentation title
 # To disable the title, set it to an empty string.
 html_title = project + " documentation"
 
 # Documentation website URL
+
 ogp_site_url = f"https://canonical.com/juju/docs/bingo-charm/{version}/"
 
+
 # Preview name of the documentation website
-# TODO: To use a different name for the project in previews, update the next line.
 ogp_site_name = project
 
 # Preview image URL
-# TODO: To customise the preview image, update the next line.
 ogp_image = "https://assets.ubuntu.com/v1/cc828679-docs_illustration.svg"
 
 # Product favicon; shown in bookmarks, browser tabs, etc.
-# TODO: To customise the favicon, uncomment and update the next line.
-# html_favicon = "_static/favicon.png"
+
 
 # Dictionary of values to pass into the Sphinx context for all pages:
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#confval-html_context
 html_context = {
     # Product page URL; can be different from product docs URL
-    # TODO: Change to your product website URL, dropping the 'https://' prefix (e.g.,
-    #       'ubuntu.com/lxd'). If there's no such website, remove the {{ product_page }}
-    #       link from the _templates/header.html file.
     "product_page": "charmhub.io/bingo",
-    # Product tag image; the orange part of your logo, shown in the page header
-    # TODO: To add a tag image, uncomment and update as needed.
-    # 'product_tag': '_static/tag.png',
+
     # Your Discourse instance URL
-    # TODO: Change to your Discourse instance URL or leave empty.
     "discourse": "https://discourse.charmhub.io",
     # Your Mattermost channel URL
-    # TODO: Change to your Mattermost channel URL or leave empty.
     "mattermost": "",
     # Your Matrix channel URL
-    # TODO: Change to your Matrix channel URL or leave empty.
     "matrix": "https://matrix.to/#/#charmhub-charmdev:ubuntu.com",
     # Your documentation GitHub repository URL If set, links for viewing the
     # documentation source files and creating GitHub issues are added at the bottom of
     # each page.
-    # TODO: Change to your documentation GitHub repository URL or leave empty.
     "github_url": "https://github.com/canonical/bingo",
     # Docs branch in the repo; used in links for viewing the source files
     "repo_default_branch": "main",
@@ -91,42 +80,35 @@ html_context = {
     "author": author,
     # Documentation license information
     "license": {
-        # TODO: Specify your project's license.
-        # For the name, we recommend using the standard shorthand identifier from
-        # https://spdx.org/licenses
-        "name": "",
-        # TODO: Link directly to your project's license statement.
-        "url": "",
+        "name": "Apache-2.0",
+        "url": "https://github.com/canonical/bingo/blob/main/LICENSE",
     },
 }
 
-# TODO: To enable the edit button on pages, uncomment and change the link to a
-# public repository on GitHub or Launchpad. Any of the following link domains
-# are accepted:
-# - https://github.com/example-org/example"
-# - https://launchpad.net/example
-# - https://git.launchpad.net/example
-#
+
+# Enable the edit button on pages
 html_theme_options = {
-    'source_edit_link': 'https://github.com/canonical/bingo',
+    "source_edit_link": "https://github.com/canonical/bingo",
 }
 
-# Project slug
-# TODO: If your documentation is hosted on https://documentation.ubuntu.com/,
-#       uncomment and set to the RTD slug.
+
+
+# Project slug for Read the Docs
 slug = "juju/docs/bingo-charm"
+
 
 #######################
 # Sitemap configuration: https://sphinx-sitemap.readthedocs.io/
 #######################
 
 # Use RTD canonical URL to ensure duplicate pages have a specific canonical URL
+
 html_baseurl = f"https://canonical.com/juju/docs/bingo-charm/{version}/"
+
 
 # sphinx-sitemap uses html_baseurl to generate the full URL for each page:
 sitemap_url_scheme = "{link}"
 
-# The filename the proxy expects the sitemap to be published under.
 sitemap_filename = "doc-sitemap.xml"
 
 # Include `lastmod` dates in the sitemap:
@@ -145,8 +127,8 @@ sitemap_excludes = [
 # Template and asset locations #
 ################################
 
-templates_path = ["_templates"]
 html_static_path = ["_static"]
+templates_path = ["_templates"]
 
 #############
 # Redirects #
@@ -170,14 +152,16 @@ rediraffe_dir_only = True
 
 # This description is included in llms.txt to provide some initial context for your
 # product docs.
-# TODO: Add a description in the form "This is the documentation for <product name>,
-# <first sentence of home page>".
 llms_txt_description = textwrap.dedent(
     """\
-    This is the documentation for bingo, a Juju charm that deploys and manages bingo, a
-    Go pastebin application that replaces paste.canonical.com.
+    This is the documentation for bingo, a Juju charm that deploys and manages bingo, a Go pastebin application that replaces paste.canonical.com.
     """
 )
+
+# sphinx-markdown-builder (run by sphinx_llm.txt) has no visitor for these nodes.
+# "meta" may be removable once liran-funaro/sphinx-markdown-builder#70 / NVIDIA/sphinx-llm#172 land;
+# "mermaid" is unaddressed upstream and will still need suppressing.
+llms_txt_suppress_unknown_node_warnings = ["meta", "mermaid"]
 
 # The base URL for references built by sphinx-markdown-builder.
 if os.environ.get("READTHEDOCS"):
@@ -201,35 +185,27 @@ linkcheck_ignore = [
 linkcheck_anchors_ignore_for_url = [r"https://github\.com/.*"]
 
 # How long the link checker will wait for a response for each request
-# TODO: Decrease to improve run time or increase if links frequently time out.
-# linkcheck_timeout = 30
+linkcheck_timeout = 30
 
 # Give linkcheck multiple tries on failure
 linkcheck_retries = 3
+
 
 ########################
 # Configuration extras #
 ########################
 
-# Custom MyST syntax extensions; see
-# https://myst-parser.readthedocs.io/en/latest/syntax/optional.html
-# NOTE: By default, the following MyST extensions are enabled:
-#   - substitution
-#   - deflist
-#   - linkify
-# myst_enable_extensions = set()
-
-# Custom Sphinx extensions; see
-# https://www.sphinx-doc.org/en/master/usage/extensions/index.html
+# Custom Sphinx extensions beyond what the template provides.
+# Re-add any project-specific extensions here during onboarding (Phase 6).
 extensions = [
     "canonical_sphinx",
     "notfound.extension",
     "sphinx_design",
-    "sphinxcontrib.mermaid",
     "sphinx_rerediraffe",
     "sphinx_reredirects",
     "sphinx_tabs.tabs",
     "sphinxcontrib.jquery",
+    "sphinxcontrib.mermaid",
     "sphinxext.opengraph",
     "sphinx_config_options",
     "sphinx_contributor_listing",
@@ -246,60 +222,34 @@ extensions = [
     "sphinx_sitemap",
 ]
 
+# Lets a plain ```mermaid fence (which GitHub also renders natively) be
+# treated as the {mermaid} directive, instead of requiring that directive
+# syntax explicitly.
+myst_fence_as_directive = {"mermaid"}
+
 # Excludes files or directories from processing
 exclude_patterns = [
     ".venv*",
-    "_dev",
     "superpowers",
 ]
 
-# Adds custom CSS files, located remotely or in 'html_static_path'.
 html_css_files = [
     "https://assets.ubuntu.com/v1/d86746ef-cookie_banner.css",
 ]
 
-# Adds custom JavaScript files, located remotely or in 'html_static_path'.
 html_js_files = [
     "https://assets.ubuntu.com/v1/287a5e8f-bundle.js",
     "js/overwrite_links.js",
 ]
 
-# Appends extra markup to the end of every document written in reST
-# rst_epilog = """
+# A string of reStructuredText included at the beginning of every source file.
+# rst_prolog = """
+# .. |charm| replace:: MyCharm
 # """
 
-# Feedback button at the top; enabled by default
-# TODO: Disable the button if your project is unsuitable for public feedback.
-# disable_feedback_button = True
-
-# Your manpage URL
-# TODO: To enable manpage links, uncomment and replace {codename} with required
-#       release, preferably an LTS release (e.g. noble). Do *not* substitute
-#       {section} or {page}; these will be replaced by sphinx at build time
-#
-# NOTE: If set, adding ':manpage:' to an .rst file
-#       adds a link to the corresponding man section at the bottom of the page.
-# manpages_url = 'https://manpages.ubuntu.com/manpages/{codename}/en/' + \
-#     'man{section}/{page}.{section}.html'
-
-# Specifies a reST snippet to be prepended to each .rst file
-# This defines a :center: role that centers table cell content.
-# This defines a :h2: role that styles content for use with PDF generation.
-rst_prolog = """
-.. role:: center
-   :class: align-center
-.. role:: h2
-    :class: hclass2
-.. role:: woke-ignore
-    :class: woke-ignore
-.. role:: vale-ignore
-    :class: vale-ignore
-"""
-
-# Configuration for Intersphinx projects
+# Intersphinx mappings for cross-referencing external documentation.
 intersphinx_mapping = {
     "juju": ("https://canonical.com/juju/docs/juju-cli/3.6/", None),
-    "starter-pack": ("https://canonical-starter-pack.readthedocs-hosted.com/stable/", None),
     "observability": ("https://documentation.ubuntu.com/observability/latest/", None),
     "postgresql": ("https://canonical.com/data/postgresql/docs/latest/", None),
     "12-factor": ("https://canonical.com/juju/docs/12-factor/latest/", None),
