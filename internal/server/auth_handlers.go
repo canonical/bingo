@@ -66,7 +66,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	sub, email, idToken, err := s.auth.Exchange(r.Context(), code)
+	sub, email, err := s.auth.Exchange(r.Context(), code)
 	if err != nil {
 		slog.Error("OIDC exchange", "err", err)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Token exchange failed.")
@@ -80,7 +80,7 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if sessErr := s.auth.SetSession(w, userID, sub, email, idToken); sessErr != nil {
+	if sessErr := s.auth.SetSession(w, userID, sub, email); sessErr != nil {
 		slog.Error("set session cookie", "err", sessErr)
 		writeError(w, http.StatusInternalServerError, "internal_error", "Internal server error.")
 		return

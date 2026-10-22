@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest'
-import { render, screen, fireEvent } from '@testing-library/react'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Navigation from './Navigation'
 
@@ -40,5 +40,16 @@ describe('Navigation', () => {
       expect.objectContaining({ method: 'POST', headers: { 'X-CSRF-Token': 'tok123' } }),
     )
     fetchMock.mockRestore()
+  })
+
+  it('stays on the page and logs when logout fails', async () => {
+    Object.defineProperty(document, 'cookie', { value: 'csrf_token=tok123', configurable: true })
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 403 }))
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    render(<MemoryRouter><Navigation isAuthenticated userEmail="a@b.com" /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('link', { name: /log out/i }))
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledWith('Logout failed: HTTP 403'))
+    fetchMock.mockRestore()
+    errorSpy.mockRestore()
   })
 })
