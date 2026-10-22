@@ -825,7 +825,7 @@ func TestSecurityHeaders(t *testing.T) {
 
 // TestRequireAuthMiddleware_authEnabled verifies that when auth is enabled,
 // unauthenticated API requests return 401 and unauthenticated browser requests
-// are redirected to /auth/login. Auth flow and healthz endpoints are exempt.
+// are served (the SPA shows a sign-in page). Auth flow and healthz endpoints are exempt.
 func TestRequireAuthMiddleware_authEnabled_apiReturns401(t *testing.T) {
 	ts := newTestServerWithAuth(t, new(auth.Provider))
 
@@ -836,7 +836,7 @@ func TestRequireAuthMiddleware_authEnabled_apiReturns401(t *testing.T) {
 	assert.Equal(t, http.StatusUnauthorized, resp.StatusCode)
 }
 
-func TestRequireAuthMiddleware_authEnabled_browserRedirectsToLogin(t *testing.T) {
+func TestRequireAuthMiddleware_authEnabled_browserNotRedirected(t *testing.T) {
 	ts := newTestServerWithAuth(t, new(auth.Provider))
 
 	client := &http.Client{
@@ -848,8 +848,8 @@ func TestRequireAuthMiddleware_authEnabled_browserRedirectsToLogin(t *testing.T)
 	require.NoError(t, err)
 	defer resp.Body.Close()
 
-	assert.Equal(t, http.StatusFound, resp.StatusCode)
-	assert.Equal(t, "/auth/login", resp.Header.Get("Location"))
+	assert.NotEqual(t, http.StatusFound, resp.StatusCode)
+	assert.Empty(t, resp.Header.Get("Location"))
 }
 
 func TestRequireAuthMiddleware_authEnabled_healthzExempt(t *testing.T) {
