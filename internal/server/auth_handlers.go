@@ -3,7 +3,6 @@ package server
 import (
 	"log/slog"
 	"net/http"
-	"strings"
 
 	"bingo/internal/auth"
 )
@@ -98,16 +97,10 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	http.Redirect(w, r, s.homeURL(), http.StatusSeeOther)
 }
 
-// handleLogout clears the session and CSRF cookies, then ends the user's
-// session at the IdP too (RP-initiated logout) before returning them home.
-//
-// Clearing only bingo's own cookies is not enough: the whole app is gated
-// behind auth (see requireAuthMiddleware), so the very next request would
-// immediately redirect back to /auth/login — and if the browser still holds
-// a valid IdP session (e.g. Kratos), the IdP silently re-authenticates it via
-// SSO without prompting, making "logout" appear to do nothing. Redirecting
-// through the IdP's end_session_endpoint first ends that IdP session too, so
-// the next /auth/login actually shows a login prompt.
+// handleLogout clears the session and CSRF cookies and returns the user home,
+// where the SPA shows its sign-in page. Only bingo's own session ends; the
+// IdP session survives (as with Mattermost), and unauthenticated users aren't
+// redirected to the IdP, so logout doesn't silently sign them back in.
 //
 // Logout is a POST (it mutates auth state) and requires a valid CSRF token,
 // same as other state-changing endpoints, so a third-party site can't force
@@ -116,18 +109,10 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 	if !s.requireCSRF(w, r) {
 		return
 	}
-	var idToken string
-	if sess, ok := auth.FromContext(r.Context()); ok {
-		idToken = sess.IDToken
-	}
 	if s.auth != nil {
 		s.auth.ClearSession(w)
 	}
 	auth.ClearCSRFCookie(w)
-	if logoutURL := s.auth.LogoutURL(idToken, s.postLogoutRedirectURL()); logoutURL != "" {
-		http.Redirect(w, r, logoutURL, http.StatusSeeOther)
-		return
-	}
 	http.Redirect(w, r, s.homeURL(), http.StatusSeeOther)
 }
 
@@ -141,16 +126,6 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 // prefix — the same source already used for paste RawURL/URL.
 func (s *Server) homeURL() string {
 	return s.cfg.BasePath() + "/"
-}
-
-// postLogoutRedirectURL returns the full, absolute URL the IdP should send
-// the browser back to after RP-initiated logout completes. Unlike homeURL
-// (a path, resolved by the browser against the current page), this value is
-// sent to a third-party IdP that has no notion of "current page", so it must
-// be a complete URL — cfg.BaseURL already carries this (scheme+host+prefix)
-// and is the same source used to build the OIDC redirect URL at startup.
-func (s *Server) postLogoutRedirectURL() string {
-	return strings.TrimSuffix(s.cfg.BaseURL, "/") + "/"
 }
 
 // validateCallbackState reports whether the oidc_state cookie is present,

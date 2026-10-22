@@ -2,6 +2,7 @@ import { Navigation, Theme } from '@canonical/react-components'
 import { Link } from 'react-router-dom'
 import type { NavItem, GenerateLink } from '@canonical/react-components'
 import { getBasePath } from '../../utils/basePath'
+import { getCSRFToken } from '../../api/client'
 
 interface Props {
   isAuthenticated: boolean
@@ -15,7 +16,24 @@ interface Props {
 // internal paths (resolved against BrowserRouter's basename); fall through
 // to a plain <a> for /auth/* server routes, prefixed with the app's base
 // path since these are real navigations, not client-side routes.
+// Logout mutates auth state, so the server only accepts POST with a CSRF
+// token header; after it clears the session we reload the app's root, which
+// shows the sign-in page.
+async function logout(e: React.MouseEvent) {
+  e.preventDefault()
+  await fetch(`${getBasePath()}/auth/logout`, {
+    method: 'POST',
+    headers: { 'X-CSRF-Token': getCSRFToken() ?? '' },
+    credentials: 'same-origin',
+    redirect: 'manual',
+  })
+  window.location.href = `${getBasePath()}/`
+}
+
 const generateLink: GenerateLink = ({ label, url, ...props }) => {
+  if (url === '/auth/logout') {
+    return <a href="#" {...(props as object)} onClick={logout}>{label}</a>
+  }
   if (url && !url.startsWith('/auth')) {
     return <Link to={url} {...(props as object)}>{label}</Link>
   }
