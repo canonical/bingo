@@ -2,6 +2,7 @@ import { Navigation, Theme } from '@canonical/react-components'
 import { Link } from 'react-router-dom'
 import type { NavItem, GenerateLink } from '@canonical/react-components'
 import { getBasePath } from '../../utils/basePath'
+import { getCSRFToken } from '../../api/client'
 
 interface Props {
   isAuthenticated: boolean
@@ -15,7 +16,36 @@ interface Props {
 // internal paths (resolved against BrowserRouter's basename); fall through
 // to a plain <a> for /auth/* server routes, prefixed with the app's base
 // path since these are real navigations, not client-side routes.
+// Logout mutates auth state, so the server only accepts POST with a CSRF
+// token header. On success the server answers with a redirect home, which we
+// don't follow (redirect: 'manual' yields an opaque-redirect response);
+// instead we reload the app root, which shows the sign-in page. On failure
+// (e.g. CSRF rejected, network error) we stay put, since the session wasn't
+// cleared, and log the cause.
+async function logout(e: React.MouseEvent) {
+  e.preventDefault()
+  try {
+    const res = await fetch(`${getBasePath()}/auth/logout`, {
+      method: 'POST',
+      headers: { 'X-CSRF-Token': getCSRFToken() ?? '' },
+      credentials: 'same-origin',
+      redirect: 'manual',
+    })
+    if (res.type !== 'opaqueredirect' && !res.ok) {
+      console.error(`Logout failed: HTTP ${res.status}`)
+      return
+    }
+  } catch (err) {
+    console.error('Logout failed:', err)
+    return
+  }
+  window.location.href = `${getBasePath()}/`
+}
+
 const generateLink: GenerateLink = ({ label, url, ...props }) => {
+  if (url === '/auth/logout') {
+    return <a href="#" {...(props as object)} onClick={logout}>{label}</a>
+  }
   if (url && !url.startsWith('/auth')) {
     return <Link to={url} {...(props as object)}>{label}</Link>
   }
