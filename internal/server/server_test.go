@@ -1107,3 +1107,189 @@ func TestServeStaticFiles_missingIndexHTMLFallsBackToServeFile(t *testing.T) {
 
 	assert.Equal(t, http.StatusNotFound, resp.StatusCode)
 }
+
+// ─── PS5 migration interstitial (LegacyBaseURL) ──────────────────────────────
+
+func TestServeStaticFiles_legacyBaseURLUnset_behaviourUnchanged(t *testing.T) {
+	// Sanity check: with LegacyBaseURL unset (the default for every other
+	// deployment), root and unmatched paths must behave exactly as before -
+	// no interstitial, always fall back to the SPA.
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "index.html"), []byte("<html><head></head><body>hi</body></html>"), 0o644))
+
+	cfg := &config.Config{BaseURL: "https://example.com", MaxPasteSizeBytes: 5 * 1024 * 1024, WebDir: dir}
+	srv := server.New(cfg, nil, defaultRepo(), nil, nil)
+	ts := httptest.NewServer(srv)
+	t.Cleanup(ts.Close)
+
+	resp, err := http.Get(ts.URL + "/")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Contains(t, string(body), `<base href="/">`)
+	assert.NotContains(t, string(body), "legacy pastebin")
+}
+
+func TestServeStaticFiles_root_showsInterstitialWhenLegacyBaseURLSet(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "index.html"), []byte("<html><head></head><body>hi</body></html>"), 0o644))
+
+	cfg := &config.Config{
+		BaseURL:           "https://example.com",
+		MaxPasteSizeBytes: 5 * 1024 * 1024,
+		WebDir:            dir,
+		LegacyBaseURL:     "https://legacy.example.com",
+	}
+	srv := server.New(cfg, nil, defaultRepo(), nil, nil)
+	ts := httptest.NewServer(srv)
+	t.Cleanup(ts.Close)
+
+	resp, err := http.Get(ts.URL + "/")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Contains(t, string(body), "legacy pastebin")
+	assert.Contains(t, string(body), `href="https://legacy.example.com/"`)
+	assert.Contains(t, string(body), `href="/?continue=1"`)
+}
+
+func TestServeStaticFiles_root_continueBypassesInterstitial(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "index.html"), []byte("<html><head></head><body>hi</body></html>"), 0o644))
+
+	cfg := &config.Config{
+		BaseURL:           "https://example.com",
+		MaxPasteSizeBytes: 5 * 1024 * 1024,
+		WebDir:            dir,
+		LegacyBaseURL:     "https://legacy.example.com",
+	}
+	srv := server.New(cfg, nil, defaultRepo(), nil, nil)
+	ts := httptest.NewServer(srv)
+	t.Cleanup(ts.Close)
+
+	resp, err := http.Get(ts.URL + "/?continue=1")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Contains(t, string(body), `<base href="/">`)
+	assert.NotContains(t, string(body), "legacy pastebin")
+}
+
+func TestServeStaticFiles_unknownKey_showsInterstitialWithPreservedPath(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "index.html"), []byte("<html><head></head><body>hi</body></html>"), 0o644))
+
+	cfg := &config.Config{
+		BaseURL:           "https://example.com",
+		MaxPasteSizeBytes: 5 * 1024 * 1024,
+		WebDir:            dir,
+		LegacyBaseURL:     "https://legacy.example.com",
+	}
+	repo := defaultRepo() // getByKeyFn returns paste.ErrNotFound for any key
+	srv := server.New(cfg, nil, repo, nil, nil)
+	ts := httptest.NewServer(srv)
+	t.Cleanup(ts.Close)
+
+	resp, err := http.Get(ts.URL + "/AbCdEfGhIj")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Contains(t, string(body), "legacy pastebin")
+	assert.Contains(t, string(body), `href="https://legacy.example.com/AbCdEfGhIj"`)
+}
+
+func TestServeStaticFiles_existingPaste_bypassesInterstitial(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "index.html"), []byte("<html><head></head><body>hi</body></html>"), 0o644))
+
+	cfg := &config.Config{
+		BaseURL:           "https://example.com",
+		MaxPasteSizeBytes: 5 * 1024 * 1024,
+		WebDir:            dir,
+		LegacyBaseURL:     "https://legacy.example.com",
+	}
+	repo := defaultRepo()
+	repo.getByKeyFn = func(_ context.Context, key string) (*paste.Paste, error) {
+		return &paste.Paste{Key: key}, nil
+	}
+	srv := server.New(cfg, nil, repo, nil, nil)
+	ts := httptest.NewServer(srv)
+	t.Cleanup(ts.Close)
+
+	resp, err := http.Get(ts.URL + "/RealBingoPaste")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	assert.Equal(t, http.StatusOK, resp.StatusCode)
+	assert.Contains(t, string(body), `<base href="/">`)
+	assert.NotContains(t, string(body), "legacy pastebin")
+}
+
+func TestServeStaticFiles_knownSPARoutes_bypassInterstitial(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "index.html"), []byte("<html><head></head><body>hi</body></html>"), 0o644))
+
+	cfg := &config.Config{
+		BaseURL:           "https://example.com",
+		MaxPasteSizeBytes: 5 * 1024 * 1024,
+		WebDir:            dir,
+		LegacyBaseURL:     "https://legacy.example.com",
+	}
+	repo := defaultRepo()
+	repo.getByKeyFn = func(_ context.Context, _ string) (*paste.Paste, error) {
+		t.Fatal("GetByKey should not be called for known SPA routes")
+		return nil, nil
+	}
+	srv := server.New(cfg, nil, repo, nil, nil)
+	ts := httptest.NewServer(srv)
+	t.Cleanup(ts.Close)
+
+	for _, p := range []string{"/my-pastes", "/error"} {
+		resp, err := http.Get(ts.URL + p)
+		require.NoError(t, err)
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		require.NoError(t, err)
+
+		assert.Equal(t, http.StatusOK, resp.StatusCode, p)
+		assert.NotContains(t, string(body), "legacy pastebin", p)
+	}
+}
+
+func TestServeStaticFiles_decommissionDateShownWhenSet(t *testing.T) {
+	dir := t.TempDir()
+	require.NoError(t, os.WriteFile(filepath.Join(dir, "index.html"), []byte("<html><head></head><body>hi</body></html>"), 0o644))
+
+	cfg := &config.Config{
+		BaseURL:             "https://example.com",
+		MaxPasteSizeBytes:   5 * 1024 * 1024,
+		WebDir:              dir,
+		LegacyBaseURL:       "https://legacy.example.com",
+		PS5DecommissionDate: "31 October 2026",
+	}
+	srv := server.New(cfg, nil, defaultRepo(), nil, nil)
+	ts := httptest.NewServer(srv)
+	t.Cleanup(ts.Close)
+
+	resp, err := http.Get(ts.URL + "/")
+	require.NoError(t, err)
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+
+	assert.Contains(t, string(body), "31 October 2026")
+}
