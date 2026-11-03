@@ -94,9 +94,10 @@ func (s *Server) securityHeadersMiddleware(next http.Handler) http.Handler {
 // requireAuthMiddleware gates the entire application behind authentication when auth
 // is enabled. Exempt paths (auth flow and healthz) are always allowed through.
 // For API paths, unauthenticated requests receive a 401 JSON response.
-// For browser paths, unauthenticated requests are redirected to the app's
-// externally-visible /auth/login (prefixed with cfg.BasePath so the redirect
-// resolves correctly behind path-prefix-stripping reverse proxies).
+// Browser (non-API) paths are always served so the SPA can show its sign-in
+// page to unauthenticated users; the data behind them is still protected by
+// the API 401s. Redirecting straight to the IdP instead would silently
+// re-authenticate users who just logged out.
 // When auth is disabled (s.auth == nil), all requests pass through unchanged.
 func (s *Server) requireAuthMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -110,12 +111,8 @@ func (s *Server) requireAuthMiddleware(next http.Handler) http.Handler {
 			next.ServeHTTP(w, r)
 			return
 		}
-		if _, ok := auth.FromContext(r.Context()); !ok {
-			if strings.HasPrefix(p, "/api/") {
-				writeError(w, http.StatusUnauthorized, "unauthenticated", "Login required.")
-				return
-			}
-			http.Redirect(w, r, s.cfg.BasePath()+"/auth/login", http.StatusFound)
+		if _, ok := auth.FromContext(r.Context()); !ok && strings.HasPrefix(p, "/api/") {
+			writeError(w, http.StatusUnauthorized, "unauthenticated", "Login required.")
 			return
 		}
 		next.ServeHTTP(w, r)
