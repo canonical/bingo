@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { fetchMe } from '../../hooks/useMe'
 import { ApiRequestError } from '../../api/types'
 import { getBasePath } from '../../utils/basePath'
+import SignInPage from '../../pages/SignInPage'
 
-type AuthState = 'loading' | 'ready'
+type AuthState = 'loading' | 'ready' | 'signed-out'
 
 interface AuthGuardProps {
   children: React.ReactNode
@@ -11,7 +12,9 @@ interface AuthGuardProps {
 
 /**
  * AuthGuard calls GET /api/v1/me on mount.
- * If auth is enabled and the user is not authenticated, redirects to /auth/login.
+ * If auth is enabled and the user is not authenticated, shows a sign-in page
+ * (rather than redirecting to the IdP, which would silently sign a user back
+ * in right after they log out).
  * If the request fails with an HTTP error response, renders the app and lets
  * individual pages surface errors.
  * If the request fails due to a network error (no response reached the
@@ -26,7 +29,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
     fetchMe()
       .then((me) => {
         if (me.auth_enabled && !me.authenticated) {
-          window.location.href = `${getBasePath()}/auth/login`
+          setState('signed-out')
         } else {
           setState('ready')
         }
@@ -46,6 +49,7 @@ export default function AuthGuard({ children }: AuthGuardProps) {
   }, [])
 
   if (state === 'loading') return null
+  if (state === 'signed-out') return <SignInPage />
 
   return <>{children}</>
 }

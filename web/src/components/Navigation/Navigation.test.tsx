@@ -1,5 +1,5 @@
-import { describe, it, expect } from 'vitest'
-import { render, screen } from '@testing-library/react'
+import { describe, it, expect, vi } from 'vitest'
+import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import Navigation from './Navigation'
 
@@ -28,5 +28,28 @@ describe('Navigation', () => {
   it('shows user email when authenticated', () => {
     render(<MemoryRouter><Navigation isAuthenticated userEmail="a@b.com" /></MemoryRouter>)
     expect(screen.getByText('a@b.com')).toBeInTheDocument()
+  })
+
+  it('logs out via a CSRF-protected POST', () => {
+    Object.defineProperty(document, 'cookie', { value: 'csrf_token=tok123', configurable: true })
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 303 }))
+    render(<MemoryRouter><Navigation isAuthenticated userEmail="a@b.com" /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('link', { name: /log out/i }))
+    expect(fetchMock).toHaveBeenCalledWith(
+      expect.stringContaining('/auth/logout'),
+      expect.objectContaining({ method: 'POST', headers: { 'X-CSRF-Token': 'tok123' } }),
+    )
+    fetchMock.mockRestore()
+  })
+
+  it('stays on the page and logs when logout fails', async () => {
+    Object.defineProperty(document, 'cookie', { value: 'csrf_token=tok123', configurable: true })
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 403 }))
+    const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {})
+    render(<MemoryRouter><Navigation isAuthenticated userEmail="a@b.com" /></MemoryRouter>)
+    fireEvent.click(screen.getByRole('link', { name: /log out/i }))
+    await waitFor(() => expect(errorSpy).toHaveBeenCalledWith('Logout failed: HTTP 403'))
+    fetchMock.mockRestore()
+    errorSpy.mockRestore()
   })
 })

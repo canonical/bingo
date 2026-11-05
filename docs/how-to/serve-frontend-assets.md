@@ -47,7 +47,7 @@ in `juju status`:
 curl -sI http://<bingo-address>/
 ```
 
-The response should be a `200 OK` serving the SPA's `index.html`.
+The response should be a `200 OK` serving the `index.html` of the single-page app.
 
 ## Disable static file serving
 

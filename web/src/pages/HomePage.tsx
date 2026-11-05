@@ -5,11 +5,11 @@ import { useMe } from '../hooks/useMe'
 
 export default function HomePage() {
   const navigate = useNavigate()
-  const { authenticated: isAuthenticated, auth_enabled: authEnabled } = useMe()
+  const { authenticated: isAuthenticated, auth_enabled: authEnabled, email } = useMe()
 
   return (
     <>
-      <AppNavigation isAuthenticated={isAuthenticated} authEnabled={authEnabled} />
+      <AppNavigation isAuthenticated={isAuthenticated} userEmail={email} authEnabled={authEnabled} />
       <main className="l-main">
         <section className="p-strip is-shallow">
           <div className="row">

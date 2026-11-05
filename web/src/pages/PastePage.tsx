@@ -14,7 +14,7 @@ export default function PastePage() {
   const [loading, setLoading] = useState(true)
   const [notFound, setNotFound] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const { authenticated: isAuthenticated, auth_enabled: authEnabled } = useMe()
+  const { authenticated: isAuthenticated, auth_enabled: authEnabled, email } = useMe()
 
   useEffect(() => {
     if (!key) return
@@ -44,7 +44,7 @@ export default function PastePage() {
 
   return (
     <>
-      <AppNavigation isAuthenticated={isAuthenticated} authEnabled={authEnabled} />
+      <AppNavigation isAuthenticated={isAuthenticated} userEmail={email} authEnabled={authEnabled} />
       <main className="l-main">
         <section className="p-strip is-shallow">
           <div className="row">

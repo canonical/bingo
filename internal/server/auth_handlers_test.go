@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
 	"testing"
 	"time"
 
@@ -143,7 +142,7 @@ func newFakeOIDCServer(t *testing.T) *httptest.Server {
 	return ts
 }
 
-func TestLogout_redirectsToIdPEndSessionEndpoint(t *testing.T) {
+func TestLogout_localOnly(t *testing.T) {
 	idp := newFakeOIDCServer(t)
 	cfg := &config.Config{
 		OIDCIssuerURL:    idp.URL,
@@ -156,23 +155,7 @@ func TestLogout_redirectsToIdPEndSessionEndpoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewProvider() error = %v", err)
 	}
-
 	ts := newTestServerWithAuth(t, provider)
-
-	// Set a session cookie carrying an ID token, as handleCallback would.
-	rec := httptest.NewRecorder()
-	if sessErr := provider.SetSession(rec, 1, "user-sub", "user@example.com", "the-id-token"); sessErr != nil {
-		t.Fatalf("SetSession() error = %v", sessErr)
-	}
-	var sessionCookie *http.Cookie
-	for _, c := range rec.Result().Cookies() {
-		if c.Name == "bingo_session" {
-			sessionCookie = c
-		}
-	}
-	if sessionCookie == nil {
-		t.Fatal("SetSession() did not set bingo_session cookie")
-	}
 
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
@@ -183,29 +166,16 @@ func TestLogout_redirectsToIdPEndSessionEndpoint(t *testing.T) {
 	if err != nil {
 		t.Fatalf("NewRequest() error = %v", err)
 	}
-	req.AddCookie(sessionCookie)
-	req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "test-csrf-token"})
-	req.Header.Set("X-CSRF-Token", "test-csrf-token")
+	req.AddCookie(&http.Cookie{Name: "csrf_token", Value: "tok"})
+	req.Header.Set("X-CSRF-Token", "tok")
 	resp, err := client.Do(req)
 	if err != nil {
 		t.Fatalf("POST /auth/logout: %v", err)
 	}
 	defer resp.Body.Close()
 
-	loc := resp.Header.Get("Location")
-	u, err := url.Parse(loc)
-	if err != nil {
-		t.Fatalf("Location header %q not parsable: %v", loc, err)
-	}
-	if got, want := u.Scheme+"://"+u.Host+u.Path, idp.URL+"/oauth2/sessions/logout"; got != want {
-		t.Errorf("logout Location = %q, want endpoint %q", got, want)
-	}
-	q := u.Query()
-	if got := q.Get("id_token_hint"); got != "the-id-token" {
-		t.Errorf("id_token_hint = %q, want %q", got, "the-id-token")
-	}
-	if got := q.Get("post_logout_redirect_uri"); got != "https://example.com/" {
-		t.Errorf("post_logout_redirect_uri = %q, want %q", got, "https://example.com/")
+	if got := resp.Header.Get("Location"); got != "/" {
+		t.Errorf("logout Location = %q, want %q (no IdP redirect)", got, "/")
 	}
 }
 
