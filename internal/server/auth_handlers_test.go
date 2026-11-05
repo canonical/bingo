@@ -4,8 +4,12 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"encoding/json"
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 
@@ -174,8 +178,8 @@ func TestLogout_localOnly(t *testing.T) {
 	}
 	defer resp.Body.Close()
 
-	if got := resp.Header.Get("Location"); got != "/" {
-		t.Errorf("logout Location = %q, want %q (no IdP redirect)", got, "/")
+	if got := resp.Header.Get("Location"); got != "/?continue=1" {
+		t.Errorf("logout Location = %q, want %q (no IdP redirect)", got, "/?continue=1")
 	}
 }
 
@@ -396,5 +400,55 @@ func TestCallback_exchangeFailure(t *testing.T) {
 
 	if resp.StatusCode != http.StatusInternalServerError {
 		t.Errorf("status = %d, want 500", resp.StatusCode)
+	}
+}
+
+func TestServeStaticFiles_root_signedInSkipsInterstitial(t *testing.T) {
+	idp := newFakeOIDCServer(t)
+	cfg := &config.Config{
+		BaseURL:           "https://example.com",
+		MaxPasteSizeBytes: 5 * 1024 * 1024,
+		OIDCIssuerURL:     idp.URL,
+		OIDCClientID:      "test-client",
+		OIDCClientSecret:  "test-secret",
+		OIDCRedirectURL:   "https://app.example.com/auth/callback",
+		SessionSecret:     "test-session-secret",
+		WebDir:            t.TempDir(),
+		LegacyBaseURL:     "https://legacy.example.com",
+	}
+	if err := os.WriteFile(filepath.Join(cfg.WebDir, "index.html"), []byte("<html><head></head><body>spa</body></html>"), 0o644); err != nil {
+		t.Fatal(err)
+	}
+	provider, err := auth.NewProvider(t.Context(), cfg)
+	if err != nil {
+		t.Fatalf("NewProvider() error = %v", err)
+	}
+	srv := server.New(cfg, nil, defaultRepo(), provider, new(auth.UserRepository))
+	ts := httptest.NewServer(srv)
+	t.Cleanup(ts.Close)
+
+	rec := httptest.NewRecorder()
+	if err := auth.NewCodec(cfg.SessionSecret).Set(rec, &auth.Session{UserID: 1, Sub: "s", Email: "u@example.com"}); err != nil {
+		t.Fatal(err)
+	}
+	get := func(withSession bool) string {
+		req, _ := http.NewRequest(http.MethodGet, ts.URL+"/", nil)
+		if withSession {
+			req.AddCookie(rec.Result().Cookies()[0])
+		}
+		resp, err := http.DefaultClient.Do(req)
+		if err != nil {
+			t.Fatal(err)
+		}
+		defer resp.Body.Close()
+		b, _ := io.ReadAll(resp.Body)
+		return string(b)
+	}
+
+	if body := get(true); !strings.Contains(body, "spa") || strings.Contains(body, "legacy pastebin") {
+		t.Errorf("signed-in user should get the SPA, got %q", body)
+	}
+	if body := get(false); !strings.Contains(body, "legacy pastebin") {
+		t.Errorf("anonymous user should get the interstitial, got %q", body)
 	}
 }

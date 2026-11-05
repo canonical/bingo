@@ -113,7 +113,9 @@ func (s *Server) handleLogout(w http.ResponseWriter, r *http.Request) {
 		s.auth.ClearSession(w)
 	}
 	auth.ClearCSRFCookie(w)
-	http.Redirect(w, r, s.homeURL(), http.StatusSeeOther)
+	// The continue marker keeps a signed-out user on the sign-in page rather
+	// than the PS5 migration interstitial (see serveInterstitial).
+	http.Redirect(w, r, s.homeURL()+"?"+continueQueryParam+"=1", http.StatusSeeOther)
 }
 
 // homeURL returns the app's externally-visible root path. Reverse proxies
