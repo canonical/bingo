@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"strings"
 
+	"bingo/internal/auth"
 	"bingo/internal/paste"
 )
 
@@ -36,6 +37,18 @@ type interstitialData struct {
 // migration interstitial and reach bingo's real home page, e.g. after a
 // user clicks "Go to bingo" on the interstitial itself.
 const continueQueryParam = "continue"
+
+// skipInterstitialAtRoot reports whether a request for "/" should go straight
+// to bingo's UI: either the user explicitly chose bingo (continue marker) or
+// is already signed in, so a post-login redirect or page reload doesn't send
+// them back to the migration notice.
+func (s *Server) skipInterstitialAtRoot(r *http.Request) bool {
+	if r.URL.Query().Get(continueQueryParam) != "" {
+		return true
+	}
+	_, signedIn := auth.FromContext(r.Context())
+	return signedIn
+}
 
 // serveInterstitial renders the PS5-decommission migration interstitial,
 // offering the user a choice between bingo and the legacy PS5 instance at

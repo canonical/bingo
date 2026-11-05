@@ -193,7 +193,7 @@ func (s *Server) serveStaticFiles(webDir string) {
 	s.mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		clean := filepath.Clean("/" + r.URL.Path)
 		if clean == "/" || clean == "/index.html" {
-			if s.cfg.LegacyBaseURL != "" && r.URL.Query().Get(continueQueryParam) == "" {
+			if s.cfg.LegacyBaseURL != "" && !s.skipInterstitialAtRoot(r) {
 				s.serveInterstitial(w, "/")
 				return
 			}

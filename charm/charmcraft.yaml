@@ -63,6 +63,20 @@ config:
         Public base URL for generated paste links, e.g. https://paste.canonical.com.
         Injected as APP_BASE_URL.
       default: ""
+    legacy-base-url:
+      type: string
+      description: |
+        Base URL of the legacy PS5 pastebin being replaced, e.g.
+        https://pastebin-legacy.canonical.com. When set, "/" and unknown paste
+        keys show a migration interstitial. Empty disables it.
+        Injected as APP_LEGACY_BASE_URL.
+      default: ""
+    ps5-decommission-date:
+      type: string
+      description: |
+        Human-readable PS5 decommission date shown on the interstitial, e.g.
+        "31 October 2026". Injected as APP_PS5_DECOMMISSION_DATE.
+      default: ""
     max-paste-size-bytes:
       type: int
       description: Maximum paste content size in bytes. Injected as APP_MAX_PASTE_SIZE_BYTES.
