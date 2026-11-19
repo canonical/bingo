@@ -94,7 +94,11 @@ func (s *Server) handleCallback(w http.ResponseWriter, r *http.Request) {
 	}
 	auth.SetCSRFCookie(w, csrfToken)
 
-	http.Redirect(w, r, s.homeURL(), http.StatusSeeOther)
+	// The continue marker matters here: bingo_session is SameSite=Strict and
+	// this redirect ends a navigation that started on the IdP's site, so the
+	// browser won't send the new session cookie on it. Without the marker,
+	// a user who just signed in would land on the PS5 interstitial.
+	http.Redirect(w, r, s.homeURL()+"?"+continueQueryParam+"=1", http.StatusSeeOther)
 }
 
 // handleLogout clears the session and CSRF cookies and returns the user home,

@@ -314,8 +314,8 @@ func TestCallback_success(t *testing.T) {
 	if resp.StatusCode != http.StatusSeeOther {
 		t.Fatalf("status = %d, want 303", resp.StatusCode)
 	}
-	if got := resp.Header.Get("Location"); got != "/" {
-		t.Errorf("Location = %q, want %q", got, "/")
+	if got := resp.Header.Get("Location"); got != "/?continue=1" {
+		t.Errorf("Location = %q, want %q", got, "/?continue=1")
 	}
 
 	var sessionSet, csrfSet, stateCleared bool

@@ -140,6 +140,11 @@ func Load() (*Config, error) {
 			return nil, err
 		}
 	}
+	if cfg.LegacyBaseURL != "" {
+		if err := validateAbsoluteURL("legacy base URL", cfg.LegacyBaseURL); err != nil {
+			return nil, err
+		}
+	}
 
 	return cfg, nil
 }

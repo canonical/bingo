@@ -110,7 +110,7 @@
         {{if .DecommissionDate}}
           the legacy instance will be retired on <strong>{{.DecommissionDate}}</strong>.
         {{else}}
-          the legacy instance will be retired on <strong>[DECOMMISSION DATE]</strong>.
+          the legacy instance will be retired soon.
         {{end}}
         Until then, it remains available in <strong>read-only</strong> mode — existing pastes can still
         be viewed, but new pastes can no longer be created there.
@@ -124,11 +124,8 @@
       </div>
     </main>
     <footer>
-      &copy; <span id="year"></span> Canonical Ltd. Ubuntu and Canonical are registered trademarks of
+      &copy; {{.Year}} Canonical Ltd. Ubuntu and Canonical are registered trademarks of
       Canonical Ltd.
     </footer>
-    <script>
-      document.getElementById('year').textContent = new Date().getFullYear()
-    </script>
   </body>
 </html>
