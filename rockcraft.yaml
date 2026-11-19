@@ -2,8 +2,8 @@
 # Built by: rockcraft pack
 # Reference: https://documentation.ubuntu.com/rockcraft/en/stable/reference/extensions/go-framework
 name: bingo
-base: ubuntu@24.04
-version: '0.1'
+base: ubuntu@26.04
+version: '0.2'
 summary: Canonical Pastebin — Go + React OCI image
 description: |
   bingo replaces paste.canonical.com on Prodstack 7. Ships the Go API binary
@@ -15,7 +15,7 @@ extensions:
   - go-framework
 
 parts:
-  go-framework/install-app:
+  go-framework.install-app:
     # Pin the Go version explicitly.
     build-snaps:
       - go/1.25/stable
@@ -26,7 +26,7 @@ parts:
     organize:
       bin/bingo: usr/local/bin/bingo
 
-  go-framework/assets:
+  go-framework.assets:
     build-snaps:
       - node/20/stable
     override-build: |
