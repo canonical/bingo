@@ -7,6 +7,7 @@ import (
 	"log/slog"
 	"net/http"
 	"net/url"
+	"regexp"
 	"strings"
 	"time"
 
@@ -91,8 +92,8 @@ func isReadMethod(r *http.Request) bool {
 
 // serveInterstitial renders the PS5-decommission migration interstitial,
 // offering the user a choice between bingo and the legacy PS5 instance at
-// the equivalent path. path is the cleaned request path (e.g. "/" or
-// "/AbCdEfGhIj") as computed by serveStaticFiles.
+// the equivalent path. path is the request path (e.g. "/" or
+// "/p/AbCdEfGhIj/"); its trailing slash is kept, as legacy URLs need it.
 func (s *Server) serveInterstitial(w http.ResponseWriter, path string) {
 	// path has already been percent-decoded, so re-escape it: otherwise a
 	// %3F or %23 in an old link becomes a real query or fragment here.
@@ -108,6 +109,16 @@ func (s *Server) serveInterstitial(w http.ResponseWriter, path string) {
 		slog.Error("render ps5 migration interstitial", "err", err)
 		http.Error(w, "Internal Server Error", http.StatusInternalServerError)
 	}
+}
+
+// legacyOnlyPath matches legacy PS5 paste URLs that have no bingo equivalent:
+// /p/<id>/, and the plain/hide/show sub-pages of /<id>/ and /=<id>/.
+var legacyOnlyPath = regexp.MustCompile(`^/(p/[A-Za-z0-9]+(/(plain|hide|show))?|(=[A-Za-z0-9]+|[0-9]+)/(plain|hide|show))/?$`)
+
+// isLegacyOnlyPath reports whether path can only be a legacy PS5 paste link.
+// clean has no trailing slash (filepath.Clean), so the optional one is moot.
+func isLegacyOnlyPath(path string) bool {
+	return legacyOnlyPath.MatchString(path)
 }
 
 // isCandidatePasteKey reports whether clean looks like a bingo paste-key

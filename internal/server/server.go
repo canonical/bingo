@@ -211,6 +211,15 @@ func (s *Server) serveStaticFiles(webDir string) {
 			return
 		}
 		if _, err := os.Stat(filepath.Join(webDir, clean)); os.IsNotExist(err) {
+			// Legacy routes bingo never serves (e.g. /p/<id>/): always notice.
+			if s.cfg.LegacyBaseURL != "" && isLegacyOnlyPath(clean) {
+				if !isReadMethod(r) {
+					methodNotAllowed(w)
+					return
+				}
+				s.serveInterstitial(w, r.URL.Path)
+				return
+			}
 			if s.cfg.LegacyBaseURL != "" && isCandidatePasteKey(clean) {
 				if !isReadMethod(r) {
 					methodNotAllowed(w)
@@ -221,12 +230,12 @@ func (s *Server) serveStaticFiles(webDir string) {
 				// trigger GetByKey's lazy-expiry delete): always show the
 				// notice.
 				if !s.canReadPastes(r) {
-					s.serveInterstitial(w, clean)
+					s.serveInterstitial(w, r.URL.Path)
 					return
 				}
 				key := strings.TrimPrefix(clean, "/")
 				if _, getErr := s.repo.GetByKey(r.Context(), key); isPasteNotFound(getErr) {
-					s.serveInterstitial(w, clean)
+					s.serveInterstitial(w, r.URL.Path)
 					return
 				}
 				// Paste exists in bingo, or GetByKey failed for some other
