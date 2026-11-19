@@ -197,3 +197,23 @@ func TestServeStaticFiles_nonGETMethodsNotAllowed(t *testing.T) {
 	resp.Body.Close()
 	assert.Equal(t, http.StatusOK, resp.StatusCode, "HEAD still works")
 }
+
+// Legacy PS5 links like /p/<id>/ never match a bingo route: they must reach
+// the legacy instance with the trailing slash intact, for any user.
+func TestInterstitial_legacyPasteLinksPreservePath(t *testing.T) {
+	ts, session := newLegacyServer(t, defaultRepo(), true)
+
+	for path, want := range map[string]string{
+		"/p/V3bRMMcPcC/":       "https://legacy.example.com/p/V3bRMMcPcC/",
+		"/p/V3bRMMcPcC/plain/": "https://legacy.example.com/p/V3bRMMcPcC/plain/",
+		"/=V3bRMMcPcC/plain/":  "https://legacy.example.com/=V3bRMMcPcC/plain/",
+		"/123/plain/":          "https://legacy.example.com/123/plain/",
+		"/AbCdEfGhIj/":         "https://legacy.example.com/AbCdEfGhIj/",
+	} {
+		for _, cookies := range [][]*http.Cookie{nil, {session}} {
+			_, body := getWithCookies(t, ts.URL+path, cookies...)
+			assert.Contains(t, body, interstitialMarker, path)
+			assert.Contains(t, body, `href="`+want+`"`, path)
+		}
+	}
+}
