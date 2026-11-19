@@ -37,6 +37,7 @@ rotating secrets.
 These guides support the ongoing upkeep of the charm and its documentation, from tuning
 operational visibility to contributing to the project.
 
+- {ref}`Upgrade <how_to_upgrade>`
 - {ref}`Configure logging <how_to_configure_logging>`
 - {ref}`Contribute <how_to_contribute>`
 
@@ -49,6 +50,7 @@ Limit paste size <limit-paste-size>
 Serve frontend assets <serve-frontend-assets>
 Configure OIDC login <configure-oidc-login>
 Rotate the secret key <rotate-secret-key>
+Upgrade <upgrade>
 Configure logging <configure-logging>
 Contribute <contribute>
 ```
