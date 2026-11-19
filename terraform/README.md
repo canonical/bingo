@@ -29,7 +29,7 @@ Juju model and does not wire any relations. For a self-contained deployment
 |---|---|---|---|
 | `app_name` | `string` | `"bingo"` | Name of the application in the Juju model. |
 | `model_uuid` | `string` | *(required)* | UUID of an existing Juju model. This module does not create the model. |
-| `base` | `string` | `"ubuntu@24.04"` | Operating system base for the charm. |
+| `base` | `string` | `"ubuntu@26.04"` | Operating system base for the charm. |
 | `channel` | `string` | `"latest/edge"` | Charmhub channel to deploy from. |
 | `revision` | `number` | `null` | Pin a specific charm revision; `null` uses the latest in `channel`. |
 | `config` | `map(string)` | `{}` | Charm config, passed straight through. See [Config options](#config-options) below. |
