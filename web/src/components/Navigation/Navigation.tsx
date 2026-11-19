@@ -39,7 +39,7 @@ async function logout(e: React.MouseEvent) {
     console.error('Logout failed:', err)
     return
   }
-  window.location.href = `${getBasePath()}/`
+  window.location.href = `${getBasePath()}/?continue=1`
 }
 
 const generateLink: GenerateLink = ({ label, url, ...props }) => {
