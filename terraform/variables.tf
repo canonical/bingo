@@ -15,7 +15,7 @@ variable "model_uuid" {
 variable "base" {
   description = "The operating system base on which to deploy the charm."
   type        = string
-  default     = "ubuntu@24.04"
+  default     = "ubuntu@26.04"
 }
 
 variable "channel" {

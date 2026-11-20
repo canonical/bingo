@@ -12,7 +12,7 @@ variable "bingo" {
     app_name = optional(string, "bingo")
     channel  = optional(string, "latest/edge")
     revision = optional(number, null)
-    base     = optional(string, "ubuntu@24.04")
+    base     = optional(string, "ubuntu@26.04")
     config   = optional(map(string), {})
     units    = optional(number, 1)
   })

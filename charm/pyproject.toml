@@ -9,11 +9,15 @@ requires-python = ">=3.12"
 # Charm code dependencies. For charm libraries fetched via `charmcraft fetch-libs`,
 # inspect each library's PYDEPS list and add those here instead.
 dependencies = [
-    "ops~=3.7",
-    "paas-charm<2.0",
+    "paas-charm>=2.0b1,<3",
 ]
 
 [dependency-groups]
+# PYDEPS from libraries that the charm uses.
+charmlibs-pydeps = []
+charm = [
+    "paas-charm>=2.0b1,<3",
+]
 lint = [
     "ruff",
     "codespell",
@@ -22,7 +26,7 @@ lint = [
 unit = [
     "coverage[toml]",
     "ops[testing]",
-    "paas-charm<2.0",
+    {include-group = "charm"},
     "pytest",
 ]
 integration = [
@@ -63,6 +67,9 @@ filterwarnings = [
     # paas_charm.charm_state calls pydantic's deprecated BaseModel.dict();
     # the fix belongs upstream in canonical/paas-charm.
     "ignore:The `dict` method is deprecated; use `model_dump` instead:DeprecationWarning",
+    # dpcharmlibs.interfaces (pulled in by paas_charm's valkey support) attaches
+    # Field() metadata to union members; the fix belongs upstream.
+    "ignore:The .* attribute with value .* was provided to the `Field\\(\\)` function:pydantic.warnings.UnsupportedFieldAttributeWarning",
 ]
 
 [tool.ruff]

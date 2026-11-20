@@ -3,16 +3,50 @@
 
 """Charm unit tests using the ops Scenario framework (ops.testing)."""
 
+import pathlib
+
 import pytest
+import yaml  # type: ignore[import-untyped]
 from ops import testing
 
 from charm import BingoCharm
+
+CHARMCRAFT_YAML = pathlib.Path(__file__).parents[2] / "charmcraft.yaml"
+
+
+def _expanded_metadata() -> tuple[dict, dict]:
+    """Return charmcraft.yaml metadata and config with go-framework extension additions.
+
+    Scenario reads charmcraft.yaml as-is and does not expand extensions, so add
+    the declarations paas-charm 2.0 relies on at runtime.
+    """
+    meta = yaml.safe_load(CHARMCRAFT_YAML.read_text())
+    config = meta.pop("config")
+    meta["containers"] = {"app": {"resource": "app-image"}}
+    meta["resources"] = {"app-image": {"type": "oci-image"}}
+    meta["peers"] = {"peers": {"interface": "peers"}}
+    meta["provides"] = {
+        "metrics-endpoint": {"interface": "prometheus_scrape"},
+        "grafana-dashboard": {"interface": "grafana_dashboard"},
+    }
+    meta["requires"].update(
+        {
+            "logging": {"interface": "loki_push_api"},
+            "ingress": {"interface": "ingress", "limit": 1},
+        }
+    )
+    config["options"]["app-secret-key"] = {"type": "secret"}
+    return meta, config
+
+
+EXTENSION_ACTIONS: dict[str, dict] = {"rotate-secret-key": {}}
 
 
 @pytest.fixture()
 def ctx() -> testing.Context:
     """Return a fresh Scenario Context wrapping BingoCharm."""
-    return testing.Context(BingoCharm)
+    meta, config = _expanded_metadata()
+    return testing.Context(BingoCharm, meta=meta, config=config, actions=EXTENSION_ACTIONS)
 
 
 def test_charm_initialises(ctx: testing.Context) -> None:

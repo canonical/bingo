@@ -26,20 +26,16 @@ class BingoCharm(paas_charm.go.Charm):
     in the future without modifying the upstream library.
     """
 
-    def __init__(self, *args: typing.Any) -> None:
-        """Initialise the BingoCharm."""
-        super().__init__(*args)
-        # Observed after paas_charm's own config-changed handler (registered
-        # above in super().__init__()), so this guard has the final say on
-        # unit status when oauth-redirect-path is misconfigured.
-        self.framework.observe(self.on.config_changed, self._on_oauth_redirect_path_changed)
+    def _reconcile(self, rerun_migrations: bool = False) -> None:
+        """Reconcile, then enforce the fixed oauth-redirect-path.
 
-    def _on_oauth_redirect_path_changed(self, _: ops.EventBase) -> None:
-        """Block the charm if oauth-redirect-path is changed from its required value.
+        Runs after paas_charm's reconciliation so this guard has the final say
+        on unit status when oauth-redirect-path is misconfigured.
 
         Args:
-            _: The config-changed event (unused).
+            rerun_migrations: whether it is necessary to run the migrations again.
         """
+        super()._reconcile(rerun_migrations)
         redirect_path = self.config.get("oauth-redirect-path")
         if redirect_path != _REQUIRED_OAUTH_REDIRECT_PATH:
             self.unit.status = ops.BlockedStatus(
