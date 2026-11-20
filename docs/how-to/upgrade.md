@@ -8,7 +8,7 @@ myst:
 
 # How to upgrade
 
-This release of the bingo charm is built on `paas-charm` 2.0 and runs on the Ubuntu 26.04 LTS
+Starting with charm revision 21, the bingo charm is built on `paas-charm` 2.0 and runs on the Ubuntu 26.04 LTS
 base. The charm and its OCI image must be upgraded together.
 
 ## Keep the application secret key
