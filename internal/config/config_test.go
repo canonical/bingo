@@ -309,3 +309,21 @@ func TestLoad_noOIDCVarsAtAllAuthDisabled(t *testing.T) {
 		t.Error("AuthEnabled() = true, want false when no OIDC vars (plain or charm) are set")
 	}
 }
+
+func TestLoad_legacyBaseURLMissingSchemeReturnsError(t *testing.T) {
+	t.Setenv("LEGACY_BASE_URL", "pastebin-legacy.example.com")
+	if _, err := config.Load(); err == nil {
+		t.Error("Load() with schemeless LEGACY_BASE_URL: want error, got nil")
+	}
+}
+
+func TestLoad_legacyBaseURLValid(t *testing.T) {
+	t.Setenv("LEGACY_BASE_URL", "https://pastebin-legacy.example.com")
+	cfg, err := config.Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.LegacyBaseURL != "https://pastebin-legacy.example.com" {
+		t.Errorf("LegacyBaseURL = %q", cfg.LegacyBaseURL)
+	}
+}

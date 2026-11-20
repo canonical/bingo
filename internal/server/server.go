@@ -166,6 +166,12 @@ func writeError(w http.ResponseWriter, status int, code, message string) {
 // served with an injected <base> tag (see indexHTMLWithBase) so the SPA's
 // relative asset/API references resolve against the app's externally
 // visible base path rather than the proxy's domain root.
+//
+// When cfg.LegacyBaseURL is set (this bingo deployment has taken over the
+// legacy PS5 instance's public hostname), "/" and any unmatched path that
+// looks like a paste key but doesn't exist in bingo are served a migration
+// interstitial instead, offering a choice between bingo and the equivalent
+// path on the legacy instance. See serveInterstitial in interstitial.go.
 func (s *Server) serveStaticFiles(webDir string) {
 	fs := http.FileServer(http.Dir(webDir))
 	indexHTML, err := s.indexHTMLWithBase(webDir)
@@ -174,6 +180,10 @@ func (s *Server) serveStaticFiles(webDir string) {
 	}
 
 	serveIndex := func(w http.ResponseWriter, r *http.Request) {
+		if s.cfg.LegacyBaseURL != "" {
+			// "/" varies by cookie and ?continue while the notice is on.
+			w.Header().Set("Cache-Control", "no-store")
+		}
 		if indexHTML == nil {
 			// Fall back to the unmodified file if it couldn't be read/patched
 			// at startup; this still works correctly when BasePath is "".
@@ -187,10 +197,52 @@ func (s *Server) serveStaticFiles(webDir string) {
 	s.mux.Handle("/", http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		clean := filepath.Clean("/" + r.URL.Path)
 		if clean == "/" || clean == "/index.html" {
+			if s.cfg.LegacyBaseURL != "" {
+				if !isReadMethod(r) {
+					methodNotAllowed(w)
+					return
+				}
+				if !s.skipInterstitialAtRoot(w, r) {
+					s.serveInterstitial(w, "/")
+					return
+				}
+			}
 			serveIndex(w, r)
 			return
 		}
 		if _, err := os.Stat(filepath.Join(webDir, clean)); os.IsNotExist(err) {
+			// Legacy routes bingo never serves (e.g. /p/<id>/): always notice.
+			if s.cfg.LegacyBaseURL != "" && isLegacyOnlyPath(clean) {
+				if !isReadMethod(r) {
+					methodNotAllowed(w)
+					return
+				}
+				s.serveInterstitial(w, r.URL.Path)
+				return
+			}
+			if s.cfg.LegacyBaseURL != "" && isCandidatePasteKey(clean) {
+				if !isReadMethod(r) {
+					methodNotAllowed(w)
+					return
+				}
+				// Signed-out users can't read pastes through the API, so
+				// don't let this page tell them whether a key exists (or
+				// trigger GetByKey's lazy-expiry delete): always show the
+				// notice.
+				if !s.canReadPastes(r) {
+					s.serveInterstitial(w, r.URL.Path)
+					return
+				}
+				key := strings.TrimPrefix(clean, "/")
+				if _, getErr := s.repo.GetByKey(r.Context(), key); isPasteNotFound(getErr) {
+					s.serveInterstitial(w, r.URL.Path)
+					return
+				}
+				// Paste exists in bingo, or GetByKey failed for some other
+				// reason: fall through to the normal SPA, which already
+				// knows how to render both the paste and its own error
+				// states.
+			}
 			serveIndex(w, r)
 			return
 		}
@@ -214,4 +266,11 @@ func (s *Server) indexHTMLWithBase(webDir string) ([]byte, error) {
 	}
 	baseTag := `<base href="` + s.cfg.BasePath() + `/">`
 	return bytes.Replace(data, []byte("<head>"), []byte("<head>"+baseTag), 1), nil
+}
+
+// methodNotAllowed answers non-GET/HEAD requests to the page routes that
+// serve the PS5 migration notice.
+func methodNotAllowed(w http.ResponseWriter) {
+	w.Header().Set("Allow", "GET, HEAD")
+	http.Error(w, "Method Not Allowed", http.StatusMethodNotAllowed)
 }
