@@ -57,10 +57,10 @@ for how `PaasCharm.__init__` wires up event observers).
 
 `BingoCharm` adds two customizations on top of the inherited behavior:
 
-- It observes `config_changed` a second time (after the parent class's own handler) to block the
-  unit if `oauth-redirect-path` has been changed away from its required fixed value
-  (`/auth/callback`) - bingo's OIDC callback route is hardcoded and does not read that
-  configuration option.
+- It overrides `_reconcile()` to validate `oauth-redirect-path` after the inherited reconciliation
+  completes, blocking the unit if the value has been changed away from its required fixed value
+  (`/auth/callback`). This runs for reconciliation triggered by any event - bingo's OIDC callback
+  route is hardcoded and does not read that configuration option.
 - It overrides the `_base_url` property so that the `base-url` configuration option, when set, takes
   priority over the ingress-derived URL that `paas_charm.go.Charm._base_url` would otherwise
   always return, letting operators control the externally-visible link text used in generated
@@ -88,8 +88,8 @@ declare those relations.
 On top of the generic response described in the events reference, two behaviors are specific to
 bingo:
 
-- Every `config_changed` event also validates `oauth-redirect-path`: if it has been changed away
-  from its required fixed value, the unit is blocked (see {ref}`Charm code overview
+- Every reconciliation validates `oauth-redirect-path`: if it has been changed away from its
+  required fixed value, the unit is blocked (see {ref}`Charm code overview
   <charm_architecture_code_overview>` above).
 - No event ever triggers `paas-charm`'s migration runner, since bingo ships no migrate script in
   its image - the `bingo` binary instead applies its own migrations internally on every process
