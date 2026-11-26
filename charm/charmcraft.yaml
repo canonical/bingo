@@ -5,7 +5,9 @@ title: bingo — Canonical Pastebin
 
 type: charm
 
-base: ubuntu@24.04
+base: ubuntu@26.04
+charm-user: non-root
+
 platforms:
   amd64:
 
@@ -23,8 +25,7 @@ links:
 extensions:
   - go-framework
 
-# `cryptography` is a transitive Python dependency (pulled in via paas-charm's
-# dpcharmlibs-interfaces requirement) that compiles its Rust extension against
+# `cryptography` is a transitive Python dependency (pulled in via paas-charm) that compiles its Rust extension against
 # OpenSSL at build time. libssl-dev/pkg-config aren't present in the
 # go-framework build environment by default, so add them explicitly to avoid
 # "Could not find directory of OpenSSL installation" build failures.
@@ -91,23 +92,6 @@ config:
         Path to the built frontend assets served as a SPA. Injected as
         APP_WEB_DIR. Empty disables static file serving.
       default: /app/web/dist
-    oauth-redirect-path:
-      type: string
-      description: |
-        Fixed path appended to base-url to build the OIDC callback redirect
-        URI registered with the identity provider over the oauth relation.
-        This is NOT meant to be changed: the Go app's callback route is
-        hardcoded to /auth/callback and does not read this config, so any
-        other value will register a callback with the identity provider
-        that the app never serves, breaking login. Present only to satisfy
-        paas_charm's relation wiring default.
-      default: /auth/callback
-    oauth-scopes:
-      type: string
-      description: |
-        Space-separated OAuth scopes requested from the identity provider over
-        the oauth relation. Must include 'openid'.
-      default: "openid email profile"
     oauth-user-name-attribute:
       type: string
       description: |

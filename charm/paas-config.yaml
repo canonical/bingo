@@ -1,0 +1,4 @@
+relations:
+  oauth:
+    redirect-path: /auth/callback
+    scopes: [openid, email, profile]

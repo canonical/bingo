@@ -29,7 +29,7 @@ Juju model and does not wire any relations. For a self-contained deployment
 |---|---|---|---|
 | `app_name` | `string` | `"bingo"` | Name of the application in the Juju model. |
 | `model_uuid` | `string` | *(required)* | UUID of an existing Juju model. This module does not create the model. |
-| `base` | `string` | `"ubuntu@24.04"` | Operating system base for the charm. |
+| `base` | `string` | `"ubuntu@26.04"` | Operating system base for the charm. |
 | `channel` | `string` | `"latest/edge"` | Charmhub channel to deploy from. |
 | `revision` | `number` | `null` | Pin a specific charm revision; `null` uses the latest in `channel`. |
 | `config` | `map(string)` | `{}` | Charm config, passed straight through. See [Config options](#config-options) below. |
@@ -48,8 +48,6 @@ https://charmhub.io/bingo/configurations once published):
 | `max-paste-size-bytes` | Maximum paste content size in bytes. |
 | `log-level` | Logging level: `debug`\|`info`\|`warn`\|`error`. |
 | `web-dir` | Path to built frontend assets served as a SPA; empty disables static file serving. |
-| `oauth-redirect-path` | OIDC callback redirect path appended to `base-url`. Must match the app's `/auth/callback` route. |
-| `oauth-scopes` | Space-separated OAuth scopes requested from the IdP. Must include `openid`. |
 | `oauth-user-name-attribute` | Claim used to identify the authenticated user from the IdP's userinfo response. |
 
 ## Outputs

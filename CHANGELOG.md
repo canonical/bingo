@@ -1,0 +1,14 @@
+# Changelog
+
+## Unreleased
+
+### Changed
+
+- Upgraded the charm to `paas-charm` 2.0b3 and moved the charm and the rock to the Ubuntu 26.04
+  LTS base. The charm now runs as a non-root user and is built with the `uv` plugin.
+- OAuth client registration now uses the callback path and scopes shipped with the charm;
+  `oauth-redirect-path` and `oauth-scopes` are no longer Juju configuration options.
+- The application secret key is regenerated on upgrade, which signs out every OIDC session,
+  unless you supply your own key through the `app-secret-key` Juju secret option. See
+  {ref}`how_to_upgrade`.
+- Refreshing requires `--base ubuntu@26.04` and supplying the rebuilt contents of the existing `app-image` OCI resource.

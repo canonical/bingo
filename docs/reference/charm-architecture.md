@@ -55,16 +55,9 @@ the `BingoCharm` class, which inherits from `paas_charm.go.Charm` (itself a `Paa
 see the generic {ref}`charm code overview <12-factor:ref_charm_architecture_code_overview>`
 for how `PaasCharm.__init__` wires up event observers).
 
-`BingoCharm` adds two customizations on top of the inherited behavior:
-
-- It observes `config_changed` a second time (after the parent class's own handler) to block the
-  unit if `oauth-redirect-path` has been changed away from its required fixed value
-  (`/auth/callback`) - bingo's OIDC callback route is hardcoded and does not read that
-  configuration option.
-- It overrides the `_base_url` property so that the `base-url` configuration option, when set, takes
-  priority over the ingress-derived URL that `paas_charm.go.Charm._base_url` would otherwise
-  always return, letting operators control the externally-visible link text used in generated
-  paste URLs.
+`BingoCharm` overrides `_base_url` so operators can set `base-url` to the public URL used for
+paste links and the OAuth callback. Otherwise, the charm uses the framework-derived URL.
+The OAuth callback path and scopes are declared in `charm/paas-config.yaml`.
 
 ## Juju events
 
@@ -85,16 +78,9 @@ Events tied to the other integrations `paas-charm` supports never occur, since b
 [`charmcraft.yaml`](https://github.com/canonical/bingo/blob/main/charm/charmcraft.yaml) doesn't
 declare those relations.
 
-On top of the generic response described in the events reference, two behaviors are specific to
-bingo:
-
-- Every `config_changed` event also validates `oauth-redirect-path`: if it has been changed away
-  from its required fixed value, the unit is blocked (see {ref}`Charm code overview
-  <charm_architecture_code_overview>` above).
-- No event ever triggers `paas-charm`'s migration runner, since bingo ships no migrate script in
-  its image - the `bingo` binary instead applies its own migrations internally on every process
-  start (see
-  `database.Migrate` in [`cmd/bingo/main.go`](https://github.com/canonical/bingo/blob/main/cmd/bingo/main.go)).
+No event triggers `paas-charm`'s migration runner because bingo ships no migrate script in its
+image. The `bingo` binary applies its own migrations on every process start (see `database.Migrate`
+in [`cmd/bingo/main.go`](https://github.com/canonical/bingo/blob/main/cmd/bingo/main.go)).
 
 See {ref}`Relation endpoints <reference_relation_endpoints>` for bingo's full list of relations,
 and {ref}`Charm <juju:charm>` for more on the charm lifecycle in general.
