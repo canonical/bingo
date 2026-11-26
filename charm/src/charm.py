@@ -9,13 +9,6 @@ import typing
 import ops
 import paas_charm.go
 
-# The Go app's OIDC callback route is hardcoded to /auth/callback and does
-# not read the oauth-redirect-path config. paas_charm requires the config
-# key to exist so its relation wiring defaults to the right value, but the
-# value itself must never change — otherwise the identity provider is told
-# to redirect to a path the app doesn't serve, silently breaking login.
-_REQUIRED_OAUTH_REDIRECT_PATH = "/auth/callback"
-
 
 class BingoCharm(paas_charm.go.Charm):
     """Charm for the bingo Go application.
@@ -25,23 +18,6 @@ class BingoCharm(paas_charm.go.Charm):
     and metrics wiring automatically.  This class exists so we can customise behaviour
     in the future without modifying the upstream library.
     """
-
-    def _reconcile(self, rerun_migrations: bool = False) -> None:
-        """Reconcile, then enforce the fixed oauth-redirect-path.
-
-        Runs after paas_charm's reconciliation so this guard has the final say
-        on unit status when oauth-redirect-path is misconfigured.
-
-        Args:
-            rerun_migrations: whether it is necessary to run the migrations again.
-        """
-        super()._reconcile(rerun_migrations)
-        redirect_path = self.config.get("oauth-redirect-path")
-        if redirect_path != _REQUIRED_OAUTH_REDIRECT_PATH:
-            self.unit.status = ops.BlockedStatus(
-                f"oauth-redirect-path must be {_REQUIRED_OAUTH_REDIRECT_PATH!r}; "
-                "the app's callback route is fixed and not configurable"
-            )
 
     @property
     def _base_url(self) -> str:

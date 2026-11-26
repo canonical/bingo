@@ -11,6 +11,10 @@ myst:
 Starting with charm revision 21, the bingo charm is built on `paas-charm` 2.0 and runs on the Ubuntu 26.04 LTS
 base. The charm and its OCI image must be upgraded together.
 
+Remove `oauth-redirect-path` and `oauth-scopes` from any bundles, Terraform configuration,
+or scripts that set them. The charm now registers `/auth/callback` and the scopes
+`openid email profile` automatically. `oauth-user-name-attribute` remains configurable.
+
 ## Keep the application secret key
 
 The upgrade regenerates the application secret key, which signs out every user logged in through

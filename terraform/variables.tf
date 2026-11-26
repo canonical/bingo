@@ -34,8 +34,7 @@ variable "config" {
   description = <<-EOT
     Application config, passed through directly to the bingo charm. Keys match
     the options documented in charm/charmcraft.yaml, e.g. "base-url",
-    "max-paste-size-bytes", "log-level", "web-dir", "oauth-redirect-path",
-    "oauth-scopes", "oauth-user-name-attribute".
+    "max-paste-size-bytes", "log-level", "web-dir", "oauth-user-name-attribute".
   EOT
   type        = map(string)
   default     = {}

@@ -92,23 +92,6 @@ config:
         Path to the built frontend assets served as a SPA. Injected as
         APP_WEB_DIR. Empty disables static file serving.
       default: /app/web/dist
-    oauth-redirect-path:
-      type: string
-      description: |
-        Fixed path appended to base-url to build the OIDC callback redirect
-        URI registered with the identity provider over the oauth relation.
-        This is NOT meant to be changed: the Go app's callback route is
-        hardcoded to /auth/callback and does not read this config, so any
-        other value will register a callback with the identity provider
-        that the app never serves, breaking login. Present only to satisfy
-        paas_charm's relation wiring default.
-      default: /auth/callback
-    oauth-scopes:
-      type: string
-      description: |
-        Space-separated OAuth scopes requested from the identity provider over
-        the oauth relation. Must include 'openid'.
-      default: "openid email profile"
     oauth-user-name-attribute:
       type: string
       description: |

@@ -16,30 +16,16 @@ This guide assumes you already have a working, OIDC-compliant identity provider 
 integrated with bingo over the `oauth` relation — for example the
 [Canonical Identity Platform](https://charmhub.io/identity-platform).
 
-## Configure OAuth scopes and the username attribute
+## Configure the username attribute
 
-This charm exposes two configuration options that are sent as metadata to the identity provider
-when registering bingo as an OAuth client:
+Bingo registers the callback path `/auth/callback` and requests the `openid`, `email`, and
+`profile` scopes. These values are fixed in the charm's `paas-config.yaml` to match the application.
 
-- `oauth-scopes`: space-separated OAuth scopes requested from the identity provider. Must include
-  `openid`. Default: `"openid email profile"`.
-- `oauth-user-name-attribute`: claim from the identity provider's userinfo response used to
-  identify the authenticated user. Default: `sub`.
-
-Set the configurations:
+The `oauth-user-name-attribute` option defaults to `sub`. To select a different username claim
+for the relation, run:
 
 ```
-juju config bingo oauth-scopes="openid email profile"
 juju config bingo oauth-user-name-attribute=email
-```
-
-These options only affect the client registration recorded with the identity provider — bingo's
-own OIDC scopes are fixed internally to `openid email profile`, so changing them does not change
-what the application requests at runtime.
-
-```{warning}
-Do not change `oauth-redirect-path`: bingo's callback route is hardcoded to `/auth/callback`, and
-the charm blocks the unit if this option is overridden.
 ```
 
 ## Verify

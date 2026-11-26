@@ -48,8 +48,6 @@ https://charmhub.io/bingo/configurations once published):
 | `max-paste-size-bytes` | Maximum paste content size in bytes. |
 | `log-level` | Logging level: `debug`\|`info`\|`warn`\|`error`. |
 | `web-dir` | Path to built frontend assets served as a SPA; empty disables static file serving. |
-| `oauth-redirect-path` | OIDC callback redirect path appended to `base-url`. Must match the app's `/auth/callback` route. |
-| `oauth-scopes` | Space-separated OAuth scopes requested from the IdP. Must include `openid`. |
 | `oauth-user-name-attribute` | Claim used to identify the authenticated user from the IdP's userinfo response. |
 
 ## Outputs

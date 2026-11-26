@@ -9,14 +9,14 @@ requires-python = ">=3.12"
 # Charm code dependencies. For charm libraries fetched via `charmcraft fetch-libs`,
 # inspect each library's PYDEPS list and add those here instead.
 dependencies = [
-    "paas-charm>=2.0b1,<3",
+    "paas-charm==2.0b3",
 ]
 
 [dependency-groups]
 # PYDEPS from libraries that the charm uses.
 charmlibs-pydeps = []
 charm = [
-    "paas-charm>=2.0b1,<3",
+    "paas-charm==2.0b3",
 ]
 lint = [
     "ruff",

@@ -4,6 +4,7 @@
 """Charm unit tests using the ops Scenario framework (ops.testing)."""
 
 import pathlib
+from typing import cast
 
 import pytest
 import yaml  # type: ignore[import-untyped]
@@ -43,9 +44,11 @@ EXTENSION_ACTIONS: dict[str, dict] = {"rotate-secret-key": {}}
 
 
 @pytest.fixture()
-def ctx() -> testing.Context:
+def ctx(monkeypatch: pytest.MonkeyPatch) -> testing.Context:
     """Return a fresh Scenario Context wrapping BingoCharm."""
     meta, config = _expanded_metadata()
+    # Juju runs hooks from the charm root, where paas-charm reads paas-config.yaml.
+    monkeypatch.chdir(CHARMCRAFT_YAML.parent)
     return testing.Context(BingoCharm, meta=meta, config=config, actions=EXTENSION_ACTIONS)
 
 
@@ -88,34 +91,16 @@ def test_config_changed_invalid_log_level(ctx: testing.Context) -> None:
     assert state_out.unit_status.name in ("waiting", "blocked", "active", "maintenance")
 
 
-def test_config_changed_oauth_redirect_path_overridden_blocks(ctx: testing.Context) -> None:
-    """Changing oauth-redirect-path away from /auth/callback must block the charm.
-
-    The Go app's callback route is hardcoded to /auth/callback and never reads
-    this config, so any other value would register a callback with the identity
-    provider that the app doesn't serve, silently breaking login.
-    """
-    container = testing.Container("app", can_connect=True)
-    state_in = testing.State(
-        containers={container},
-        config={"oauth-redirect-path": "/callback"},
+def test_oauth_client_registration(ctx: testing.Context) -> None:
+    """Register the callback and scopes that the Go application uses for login."""
+    oauth = testing.Relation("oauth")
+    state = testing.State(
+        leader=True, relations={oauth}, config={"base-url": "https://paste.example.com"}
     )
-    state_out = ctx.run(ctx.on.config_changed(), state_in)
-    assert state_out.unit_status.name == "blocked"
-    assert "oauth-redirect-path" in state_out.unit_status.message
-
-
-def test_config_changed_oauth_redirect_path_default_not_blocked_by_guard(
-    ctx: testing.Context,
-) -> None:
-    """The default oauth-redirect-path value must not trigger the guard."""
-    container = testing.Container("app", can_connect=True)
-    state_in = testing.State(containers={container})
-    state_out = ctx.run(ctx.on.config_changed(), state_in)
-    # Other reasons (e.g. missing postgresql) may still leave it non-active,
-    # but it must not be blocked specifically for oauth-redirect-path.
-    if state_out.unit_status.name == "blocked":
-        assert "oauth-redirect-path" not in state_out.unit_status.message
+    result = ctx.run(ctx.on.relation_created(oauth), state)
+    registration = cast(dict[str, str], result.get_relation(oauth.id).local_app_data)
+    assert registration["redirect_uri"] == "https://paste.example.com/auth/callback"
+    assert set(registration["scope"].split()) == {"openid", "email", "profile"}
 
 
 def test_base_url_config_overrides_ingress_derived_default(ctx: testing.Context) -> None:
